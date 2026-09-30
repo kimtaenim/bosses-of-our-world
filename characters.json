@@ -8,6 +8,8 @@
     { "id": "bezos", "name": "베조스",   "group": "business",   "color": "#FF9900", "initial": "B", "faceDir": "assets/faces/bezos/",  "special": "assets/special/bezos.png", "specialLabel": "미소 화살표" },
     { "id": "zuck",  "name": "저커버그", "group": "business",   "color": "#1877F2", "initial": "Z", "faceDir": "assets/faces/zuck/",   "special": "assets/special/zuck.png",  "specialLabel": "SNS" }
   ],
+  "faceFormat": "webp",
+  "faceScale": 0.88,
   "expressions": ["smirk", "shock", "scream", "fall", "sulk", "glance", "glance_left", "eyeroll", "blink", "nervous", "squish", "cheer"],
   "expressionFallback": {
     "shock": "smirk", "scream": "shock", "fall": "shock", "sulk": "smirk", "glance": "smirk", "glance_left": "smirk", "eyeroll": "glance", "blink": "smirk", "nervous": "shock", "squish": "scream", "cheer": "smirk"

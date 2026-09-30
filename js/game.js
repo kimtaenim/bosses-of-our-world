@@ -29,7 +29,7 @@ export class Game {
 
     this.tw = new Tweener();
     this.fx = new FX(this.J);
-    this.sprites = new Sprites(characters, this.T, data.expressions, data.expressionFallback);
+    this.sprites = new Sprites(characters, this.T, data.expressions, data.expressionFallback, { format: data.faceFormat, scale: data.faceScale });
     this.faces = new Faces(this);
     this.sound = new Sound(config);
 

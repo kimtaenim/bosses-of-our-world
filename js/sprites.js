@@ -26,6 +26,20 @@ function loadImage(src) {
   });
 }
 
+// 원화 모서리 픽셀 = 배경색
+function cornerColor(img) {
+  try {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 1;
+    const ctx = cv.getContext('2d');
+    ctx.drawImage(img, 2, 2, 1, 1, 0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return `rgb(${r},${g},${b})`;
+  } catch (_) {
+    return null;
+  }
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -185,11 +199,14 @@ function drawPlaceholderFace(ctx, expr, bg, fg) {
 }
 
 export class Sprites {
-  constructor(characters, tile, expressions = DEFAULT_EXPRESSIONS, fallback = DEFAULT_FALLBACK) {
+  // options: { format: 원화 확장자('webp'), scale: 원형 안에서 원화 크기 배율 }
+  constructor(characters, tile, expressions = DEFAULT_EXPRESSIONS, fallback = DEFAULT_FALLBACK, options = {}) {
     this.characters = characters;
     this.tile = tile;
-    this.expressions = expressions;
-    this.fallback = fallback;
+    this.expressions = expressions || DEFAULT_EXPRESSIONS;
+    this.fallback = fallback || DEFAULT_FALLBACK;
+    this.format = options.format || 'webp';
+    this.faceScale = options.scale || 1;
     this.faceImgs = [];   // [charIdx] → { expr: Image } | null
     this.specialImgs = [];
     this.normal = [];     // [charIdx] → { expr: canvas }
@@ -204,12 +221,13 @@ export class Sprites {
 
   async loadFaces(ch) {
     if (!ch.faceDir) return null;
-    const base = await loadImage(`${ch.faceDir}smirk.png`);
+    const base = await loadImage(`${ch.faceDir}smirk.${this.format}`);
     if (!base) return null;
     const imgs = { smirk: base };
     const rest = this.expressions.filter((e) => e !== 'smirk');
-    const loaded = await Promise.all(rest.map((e) => loadImage(`${ch.faceDir}${e}.png`)));
+    const loaded = await Promise.all(rest.map((e) => loadImage(`${ch.faceDir}${e}.${this.format}`)));
     rest.forEach((e, i) => { if (loaded[i]) imgs[e] = loaded[i]; });
+    imgs.bg = cornerColor(base) || ch.color;
     return imgs;
   }
 
@@ -257,12 +275,16 @@ export class Sprites {
 
     const imgs = this.faceImgs[i];
     if (imgs) {
-      // 원화는 인물 고유색 배경이 칠해진 정사각 그림 → 원형으로 잘라 쓴다 (투명 배경이어도 동작)
+      // 원화(인물 고유색 배경의 정사각 그림)를 원형으로 잘라 쓴다.
+      // 원 바깥으로 삐져나가는 머리가 덜 잘리도록 살짝 줄여 그리고, 빈 테두리는 원화 배경색으로 채운다.
       ctx.save();
       ctx.beginPath();
       ctx.arc(T / 2, T / 2, T / 2 - 1, 0, Math.PI * 2);
       ctx.clip();
-      ctx.drawImage(this.resolveImage(imgs, expr), 0, 0, T, T);
+      ctx.fillStyle = imgs.bg;
+      ctx.fillRect(0, 0, T, T);
+      const s = T * this.faceScale;
+      ctx.drawImage(this.resolveImage(imgs, expr), (T - s) / 2, (T - s) / 2, s, s);
       ctx.restore();
       return cv;
     }
