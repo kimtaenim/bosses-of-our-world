@@ -199,7 +199,7 @@ function drawPlaceholderFace(ctx, expr, bg, fg) {
 }
 
 export class Sprites {
-  // options: { format: 원화 확장자('webp'), scale: 원형 안에서 원화 크기 배율 }
+  // options: { format: 원화 확장자('webp'), scale: 타일 안 원화 크기 배율, shape: 'square' | 'circle' }
   constructor(characters, tile, expressions = DEFAULT_EXPRESSIONS, fallback = DEFAULT_FALLBACK, options = {}) {
     this.characters = characters;
     this.tile = tile;
@@ -207,6 +207,7 @@ export class Sprites {
     this.fallback = fallback || DEFAULT_FALLBACK;
     this.format = options.format || 'webp';
     this.faceScale = options.scale || 1;
+    this.shape = options.shape || 'square';
     this.faceImgs = [];   // [charIdx] → { expr: Image } | null
     this.specialImgs = [];
     this.normal = [];     // [charIdx] → { expr: canvas }
@@ -263,23 +264,29 @@ export class Sprites {
     return [cv, ctx];
   }
 
+  // 타일 모양 경로: 'square'(둥근 사각형, 기본) / 'circle'
+  tilePath(ctx) {
+    const T = this.tile;
+    if (this.shape === 'circle') {
+      ctx.beginPath();
+      ctx.arc(T / 2, T / 2, T / 2 - 1, 0, Math.PI * 2);
+    } else {
+      roundRect(ctx, 1, 1, T - 2, T - 2, T * 0.22);
+    }
+  }
+
   renderFace(ch, i, expr) {
     const T = this.tile;
     const [cv, ctx] = this.canvas();
     const color = ch.color;
     const fg = textColorFor(color);
-    ctx.beginPath();
-    ctx.arc(T / 2, T / 2, T / 2 - 1, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
 
     const imgs = this.faceImgs[i];
     if (imgs) {
-      // 원화(인물 고유색 배경의 정사각 그림)를 원형으로 잘라 쓴다.
-      // 원 바깥으로 삐져나가는 머리가 덜 잘리도록 살짝 줄여 그리고, 빈 테두리는 원화 배경색으로 채운다.
+      // 원화(인물 고유색 배경의 정사각 그림)를 타일 모양으로 잘라 쓴다.
+      // faceScale > 1 이면 얼굴이 타일을 꽉 채우도록 확대(가장자리 약간 잘림), < 1 이면 축소하고 테두리를 배경색으로 채움.
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(T / 2, T / 2, T / 2 - 1, 0, Math.PI * 2);
+      this.tilePath(ctx);
       ctx.clip();
       ctx.fillStyle = imgs.bg;
       ctx.fillRect(0, 0, T, T);
@@ -288,9 +295,15 @@ export class Sprites {
       ctx.restore();
       return cv;
     }
-    // 표정 + 이니셜(정수리) + 하이라이트(눈꺼풀 색면이 튀지 않게 맨 위에)
+
+    // 플레이스홀더: 56×56 좌표로 그린 뒤 타일 크기에 맞춰 확대
+    this.tilePath(ctx);
+    ctx.fillStyle = color;
+    ctx.fill();
     ctx.save();
-    if (expr === 'glance_left') { ctx.translate(T, 0); ctx.scale(-1, 1); }
+    ctx.scale(T / 56, T / 56);
+    ctx.save();
+    if (expr === 'glance_left') { ctx.translate(56, 0); ctx.scale(-1, 1); }
     drawPlaceholderFace(ctx, expr === 'glance_left' ? 'glance' : expr, color, fg);
     ctx.restore();
     ctx.fillStyle = fg;
@@ -298,13 +311,13 @@ export class Sprites {
     ctx.font = `900 9px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(ch.initial, T / 2, 6.5);
+    ctx.fillText(ch.initial, 28, 6.5);
     ctx.globalAlpha = 1;
-    const g = ctx.createRadialGradient(T * 0.35, T * 0.3, 2, T / 2, T / 2, T / 2);
+    ctx.restore();
+    const g = ctx.createRadialGradient(T * 0.35, T * 0.3, 2, T / 2, T / 2, T / 2 * 1.3);
     g.addColorStop(0, 'rgba(255,255,255,0.22)');
     g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.beginPath();
-    ctx.arc(T / 2, T / 2, T / 2 - 1, 0, Math.PI * 2);
+    this.tilePath(ctx);
     ctx.fillStyle = g;
     ctx.fill();
     return cv;

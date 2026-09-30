@@ -19,12 +19,13 @@
 </head>
 <body>
   <h1>표정 갤러리</h1>
-  <p>게임과 같은 크기(56px)로 보인다. 원화를 <code>node tools/import-face.mjs</code>로 <code>assets/faces/&lt;id&gt;/&lt;표정&gt;.webp</code>에 넣으면 여기서 바로 확인할 수 있다.</p>
+  <p>게임과 같은 크기로 보인다. 원화를 <code>node tools/import-face.mjs</code>로 <code>assets/faces/&lt;id&gt;/&lt;표정&gt;.webp</code>에 넣으면 여기서 바로 확인할 수 있다.</p>
   <label><input type="checkbox" id="big"> 2배로 보기</label>
   <label><input type="checkbox" id="alt"> 시진핑 노랑</label>
   <div class="wrap"><table id="grid"></table></div>
   <script type="module">
     import { Sprites } from './js/sprites.js';
+    import { CONFIG } from './config.js';
 
     const LABELS = {
       smirk: '얄미운 웃음', shock: '놀람', scream: '비명', fall: '낙하', sulk: '삐짐', eyeroll: '눈굴림',
@@ -37,7 +38,7 @@
       const big = document.getElementById('big').checked;
       const alt = document.getElementById('alt').checked;
       const chars = data.characters.map((ch) => ({ ...ch, color: alt && ch.colorAlt ? ch.colorAlt : ch.color }));
-      const sprites = new Sprites(chars, 56, data.expressions, data.expressionFallback, { format: data.faceFormat, scale: data.faceScale });
+      const sprites = new Sprites(chars, CONFIG.TILE, data.expressions, data.expressionFallback, { format: data.faceFormat, scale: data.faceScale, shape: CONFIG.TILE_SHAPE });
       await sprites.load();
       const scale = big ? 2 : 1;
       sprites.build(scale * (window.devicePixelRatio || 1));
@@ -52,7 +53,7 @@
         for (const src of cells) {
           const cv = document.createElement('canvas');
           cv.width = src.width; cv.height = src.height;
-          cv.style.width = cv.style.height = `${56 * scale}px`;
+          cv.style.width = cv.style.height = `${CONFIG.TILE * scale}px`;
           cv.getContext('2d').drawImage(src, 0, 0);
           row.insertCell().appendChild(cv);
         }

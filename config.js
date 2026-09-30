@@ -4,10 +4,11 @@ export const CONFIG = {
   JUICE: 1,
 
   // 보드 (논리 px)
-  COLS: 6,
-  ROWS: 8,
-  TILE: 56,
-  GAP: 4,
+  COLS: 5,
+  ROWS: 7,
+  TILE: 68,
+  GAP: 3,
+  TILE_SHAPE: 'square', // 'square'(둥근 사각형) 또는 'circle'
   BASE_WIDTH: 360,
 
   // 판별 목표 점수. 배열 이후 판은 직전 값 × TARGET_GROWTH (소수점 버림)
