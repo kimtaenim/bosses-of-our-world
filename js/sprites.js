@@ -199,7 +199,7 @@ function drawPlaceholderFace(ctx, expr, bg, fg) {
 }
 
 export class Sprites {
-  // options: { format: 원화 확장자('webp'), scale: 타일 안 원화 크기 배율, shape: 'square' | 'circle' }
+  // options: { format: 원화 확장자('webp'), scale: 타일 안 원화 크기 배율, shape: 'square' | 'circle', border: 테두리 px }
   constructor(characters, tile, expressions = DEFAULT_EXPRESSIONS, fallback = DEFAULT_FALLBACK, options = {}) {
     this.characters = characters;
     this.tile = tile;
@@ -208,6 +208,7 @@ export class Sprites {
     this.format = options.format || 'webp';
     this.faceScale = options.scale || 1;
     this.shape = options.shape || 'square';
+    this.border = options.border || 0; // 원화 둘레 인물 색 테두리 두께(px). 크게 확대해 배경이 안 보일 때 색 구분용
     this.faceImgs = [];   // [charIdx] → { expr: Image } | null
     this.specialImgs = [];
     this.normal = [];     // [charIdx] → { expr: canvas }
@@ -292,6 +293,12 @@ export class Sprites {
       ctx.fillRect(0, 0, T, T);
       const s = T * this.faceScale;
       ctx.drawImage(this.resolveImage(imgs, expr), (T - s) / 2, (T - s) / 2, s, s);
+      if (this.border > 0) {
+        this.tilePath(ctx);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = this.border * 2; // 클립 안쪽 절반만 보이므로 2배
+        ctx.stroke();
+      }
       ctx.restore();
       return cv;
     }

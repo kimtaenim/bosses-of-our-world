@@ -50,7 +50,7 @@ npx http-server -c-1 .     # 또는 python3 -m http.server
 node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원본3.png fall=원본4.png
 ```
 
-게임에서 타일 모양(`config.js`의 `TILE_SHAPE`, 기본 둥근 사각형)으로 잘라 쓴다. `characters.json`의 `faceScale`(기본 1.08)로 얼굴 크기를 조절한다: 1보다 크면 확대해 타일을 꽉 채우고(가장자리 약간 잘림), 1보다 작으면 축소하고 빈 테두리를 원화 모서리 색으로 채운다.
+게임에서 타일 모양(`config.js`의 `TILE_SHAPE`, 기본 둥근 사각형)으로 잘라 쓴다. `characters.json`의 `faceScale`(기본 1.2)로 얼굴 크기를 조절한다: 1보다 크면 확대해 타일을 꽉 채우고(가장자리 약간 잘림), 1보다 작으면 축소하고 빈 테두리를 원화 모서리 색으로 채운다.
 
 원화는 인물당 **7컷**:
 
