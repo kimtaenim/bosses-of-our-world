@@ -13,8 +13,8 @@ test('target scores follow the config array, then ×1.3 floored', () => {
 test('characters.json levels reference known ids', () => {
   const data = JSON.parse(readFileSync(new URL('../characters.json', import.meta.url)));
   const ids = new Set(data.characters.map((c) => c.id));
-  assert.equal(data.characters.length, 7);
+  assert.equal(data.characters.length, 6);
   for (const id of data.levels.order) assert.ok(ids.has(id), id);
   assert.deepEqual(data.levels.order.slice(0, 4), ['trump', 'kim', 'musk', 'bezos']);
-  assert.deepEqual(data.levels.counts, [4, 5, 6, 7]);
+  assert.deepEqual(data.levels.counts, [4, 5, 6]);
 });

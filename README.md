@@ -38,7 +38,7 @@ npx http-server -c-1 .     # 또는 python3 -m http.server
   - `HINT_DELAY_MS`, `FALL_GRAVITY`, `SOUND_ENABLED`, `SOUNDS`, `USE_ALT_COLORS`.
 - `characters.json`
   - `characters`: id, 표시명, 그룹, 배경색, 이니셜, 얼굴 이미지, 특수타일 이미지, 특수타일 플레이스홀더 글자.
-  - `levels.order`: 인물이 추가되는 순서. `levels.counts`: 판별 활성 인물 수 (`[4, 5, 6, 7]`, 마지막 값 유지).
+  - `levels.order`: 인물이 추가되는 순서. `levels.counts`: 판별 활성 인물 수 (`[4, 5, 6]`, 마지막 값 유지).
 
 ## 원화 교체
 
