@@ -264,7 +264,13 @@ export class Sprites {
 
     const imgs = this.faceImgs[i];
     if (imgs) {
+      // 원화는 인물 고유색 배경이 칠해진 정사각 그림 → 원형으로 잘라 쓴다 (투명 배경이어도 동작)
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(T / 2, T / 2, T / 2 - 1, 0, Math.PI * 2);
+      ctx.clip();
       ctx.drawImage(this.resolveImage(imgs, expr), 0, 0, T, T);
+      ctx.restore();
       return cv;
     }
     // 표정 + 이니셜(정수리) + 하이라이트(눈꺼풀 색면이 튀지 않게 맨 위에)
