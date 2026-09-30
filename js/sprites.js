@@ -4,16 +4,18 @@
 // 얼굴 이미지 경로: <faceDir><표정>.png  (예: assets/faces/trump/stern.png)
 // 기본 표정(stern)이 없으면 그 인물은 전부 플레이스홀더. 일부 표정만 있으면
 // 빠진 표정은 expressionFallback을 따라 있는 이미지로 대체한다.
-// glance(곁눈질)는 오른쪽을 보는 그림 한 장만 그리면 왼쪽은 좌우 반전으로 쓴다.
+// 원화는 절대 좌우 반전하지 않는다(가르마·앞머리 방향이 뒤집히므로).
+// 오른쪽 곁눈질은 glance, 왼쪽은 glance_left 그림을 따로 쓰고, glance_left가 없으면 eyeroll로 대체.
+// 플레이스홀더 얼굴은 좌우 대칭이라 glance_left를 glance 반전으로 그린다.
 
 export const DEFAULT_EXPRESSIONS = [
   'stern', 'eyeroll', 'shock', 'scream', 'fall', 'smug',
-  'blink', 'glance', 'nervous', 'squish', 'sulk', 'cheer',
+  'blink', 'glance', 'glance_left', 'nervous', 'squish', 'sulk', 'cheer',
 ];
 
 export const DEFAULT_FALLBACK = {
   eyeroll: 'stern', shock: 'stern', scream: 'shock', fall: 'shock', smug: 'stern',
-  blink: 'stern', glance: 'eyeroll', nervous: 'stern', squish: 'scream', sulk: 'stern', cheer: 'smug',
+  blink: 'stern', glance: 'eyeroll', glance_left: 'eyeroll', nervous: 'stern', squish: 'scream', sulk: 'stern', cheer: 'smug',
 };
 
 function loadImage(src) {
@@ -234,10 +236,7 @@ export class Sprites {
     this.pxScale = pxScale;
     this.normal = this.characters.map((ch, i) => {
       const set = {};
-      for (const e of this.expressions) {
-        set[e] = this.renderFace(ch, i, e, false);
-        set[`${e}:flip`] = this.renderFace(ch, i, e, true);
-      }
+      for (const e of this.expressions) set[e] = this.renderFace(ch, i, e);
       return set;
     });
     this.special = this.characters.map((ch, i) => this.renderSpecial(ch, i));
@@ -253,8 +252,7 @@ export class Sprites {
     return [cv, ctx];
   }
 
-  // flip: 얼굴만 좌우 반전 (이니셜 글자는 그대로)
-  renderFace(ch, i, expr, flip) {
+  renderFace(ch, i, expr) {
     const T = this.tile;
     const [cv, ctx] = this.canvas();
     const color = ch.color;
@@ -264,19 +262,16 @@ export class Sprites {
     ctx.fillStyle = color;
     ctx.fill();
 
-    const mirror = (fn) => {
-      ctx.save();
-      if (flip) { ctx.translate(T, 0); ctx.scale(-1, 1); }
-      fn();
-      ctx.restore();
-    };
     const imgs = this.faceImgs[i];
     if (imgs) {
-      mirror(() => ctx.drawImage(this.resolveImage(imgs, expr), 0, 0, T, T));
+      ctx.drawImage(this.resolveImage(imgs, expr), 0, 0, T, T);
       return cv;
     }
     // 표정 + 이니셜(정수리) + 하이라이트(눈꺼풀 색면이 튀지 않게 맨 위에)
-    mirror(() => drawPlaceholderFace(ctx, expr, color, fg));
+    ctx.save();
+    if (expr === 'glance_left') { ctx.translate(T, 0); ctx.scale(-1, 1); }
+    drawPlaceholderFace(ctx, expr === 'glance_left' ? 'glance' : expr, color, fg);
+    ctx.restore();
     ctx.fillStyle = fg;
     ctx.globalAlpha = 0.85;
     ctx.font = `900 9px ${FONT}`;
@@ -340,9 +335,11 @@ export class Sprites {
     return cv;
   }
 
+  // flip: 곁눈질 방향 (true = 왼쪽을 봄)
   get(tile, expr = tile.expr, flip = tile.flip) {
     if (tile.special) return this.special[tile.type];
     const set = this.normal[tile.type];
-    return set && ((flip ? set[`${expr}:flip`] : set[expr]) || set.stern);
+    const e = expr === 'glance' && flip ? 'glance_left' : expr;
+    return set && (set[e] || set.stern);
   }
 }

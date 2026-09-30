@@ -8,10 +8,10 @@
     { "id": "bezos", "name": "베조스",   "group": "business",   "color": "#FF9900", "initial": "B", "faceDir": "assets/faces/bezos/",  "special": "assets/special/bezos.png", "specialLabel": "미소 화살표" },
     { "id": "zuck",  "name": "저커버그", "group": "business",   "color": "#1877F2", "initial": "Z", "faceDir": "assets/faces/zuck/",   "special": "assets/special/zuck.png",  "specialLabel": "SNS" }
   ],
-  "expressions": ["stern", "eyeroll", "shock", "scream", "fall", "smug", "blink", "glance", "nervous", "squish", "sulk", "cheer"],
+  "expressions": ["stern", "eyeroll", "shock", "scream", "fall", "smug", "blink", "glance", "glance_left", "nervous", "squish", "sulk", "cheer"],
   "expressionFallback": {
     "eyeroll": "stern", "shock": "stern", "scream": "shock", "fall": "shock", "smug": "stern",
-    "blink": "stern", "glance": "eyeroll", "nervous": "stern", "squish": "scream", "sulk": "stern", "cheer": "smug"
+    "blink": "stern", "glance": "eyeroll", "glance_left": "eyeroll", "nervous": "stern", "squish": "scream", "sulk": "stern", "cheer": "smug"
   },
   "levels": {
     "order": ["trump", "kim", "musk", "bezos", "zuck", "putin", "xi"],
