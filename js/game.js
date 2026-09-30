@@ -152,8 +152,20 @@ export class Game {
     if (this.busy) return;
     if (Math.abs(a.r - b.r) + Math.abs(a.c - b.c) !== 1) return;
     this.busy = true;
+    this.busySince = this.tw.time;
     this.selected = null;
     this.clearHint();
+    try {
+      await this.playSwap(a, b);
+    } catch (err) {
+      console.error(err);
+      this.repairBoard();
+    } finally {
+      this.endTurn();
+    }
+  }
+
+  async playSwap(a, b) {
     const board = this.board;
     const ta = board.get(a.r, a.c), tb = board.get(b.r, b.c);
     for (const t of [ta, tb]) {
@@ -171,15 +183,52 @@ export class Game {
         this.faces.set(t, 'sulk', 900, PRIO.REACT);
         this.faces.headShake(t);
       }
-      this.endTurn();
       return;
     }
     await this.resolve([b, a]);
-    this.endTurn();
+  }
+
+  // 안전장치: 예외나 멈춤이 생기면 보드를 정상 상태로 되돌린다 (빈칸 채우기, 위치 정렬, 둘 곳 확보)
+  repairBoard() {
+    this.dying = [];
+    const board = this.board;
+    if (!board) return;
+    if (board.cells.some((t) => !t)) board.collapse();
+    board.cells.forEach((t, i) => {
+      const [r, c] = board.rc(i);
+      Object.assign(t, { x: c, y: r, scale: 1, sx: 1, sy: 1, alpha: 1, jx: 0, flash: 0 });
+      this.faces.cancelMotion(t);
+      this.faces.reset(t);
+    });
+    if (board.findMatches().groups.length || !board.findMove()) {
+      board.shuffle();
+      board.cells.forEach((t, i) => { const [r, c] = board.rc(i); t.x = c; t.y = r; });
+    }
+  }
+
+  // 매 프레임: 둘 곳이 없는데 멈춰 있으면 섞고, 너무 오래 busy면 복구
+  watchdog() {
+    const now = this.tw.time;
+    if (this.busy) {
+      if (this.busySince && now - this.busySince > 12000) {
+        console.warn('watchdog: busy too long, repairing');
+        this.repairBoard();
+        this.endTurn();
+      }
+      return;
+    }
+    if (!this.board || now - (this.lastMoveCheck || 0) < 500) return;
+    this.lastMoveCheck = now;
+    if (!this.board.findMove()) {
+      this.busy = true;
+      this.busySince = now;
+      this.shuffleBoard().catch((err) => { console.error(err); this.repairBoard(); }).finally(() => this.endTurn());
+    }
   }
 
   endTurn() {
     this.busy = false;
+    this.busySince = 0;
     this.lastInput = this.tw.time;
   }
 
@@ -214,23 +263,49 @@ export class Game {
     if (!this.board.findMove()) await this.shuffleBoard();
   }
 
+  // 둘 곳이 없을 때: "섞는 중!" 표시와 함께 가운데로 빨려 들었다가 빙글빙글 새 자리로 흩어짐
   async shuffleBoard() {
+    this.selected = null;
+    this.clearHint();
+    this.showBanner('섞는 중!');
+    this.sound.play('chain', 5);
+    this.vibrate(20);
     this.board.shuffle();
+    const cx = (this.cfg.COLS - 1) / 2, cy = (this.cfg.ROWS - 1) / 2;
     const moves = [];
     for (let r = 0; r < this.cfg.ROWS; r++) {
       for (let c = 0; c < this.cfg.COLS; c++) {
         const t = this.board.get(r, c);
-        moves.push({ t, x0: t.x, y0: t.y, x1: c, y1: r });
         this.faces.cancelMotion(t);
-        this.faces.set(t, 'eyeroll', 650, PRIO.REACT);
+        this.faces.set(t, 'shock', 900, PRIO.MOVE);
+        moves.push({ t, x0: t.x, y0: t.y, x1: c, y1: r, spin: (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random()) });
       }
     }
-    await this.tw.tween(380, (p) => {
+    const J = Math.min(this.J, 1.5);
+    // 1) 가운데로 모이며 작아짐
+    await this.tw.tween(260, (p) => {
       for (const m of moves) {
-        m.t.x = m.x0 + (m.x1 - m.x0) * p;
-        m.t.y = m.y0 + (m.y1 - m.y0) * p;
+        m.t.x = m.x0 + (cx - m.x0) * p * 0.7;
+        m.t.y = m.y0 + (cy - m.y0) * p * 0.7;
+        m.t.scale = 1 - 0.35 * p * J;
+        m.t.rot = m.spin * p * Math.PI * J;
       }
-    }, ease.inOutQuad);
+    }, ease.inQuad);
+    this.fx.shake(4);
+    // 2) 빙글 돌며 새 자리로 흩어짐
+    await this.tw.tween(420, (p) => {
+      for (const m of moves) {
+        const sx = m.x0 + (cx - m.x0) * 0.7, sy = m.y0 + (cy - m.y0) * 0.7;
+        m.t.x = sx + (m.x1 - sx) * p;
+        m.t.y = sy + (m.y1 - sy) * p;
+        m.t.scale = 1 - 0.35 * J + 0.35 * J * p;
+        m.t.rot = m.spin * (1 - p) * Math.PI * J;
+      }
+    }, ease.outBack);
+    for (const m of moves) {
+      m.t.x = m.x1; m.t.y = m.y1; m.t.scale = 1; m.t.rot = 0;
+      this.faces.set(m.t, 'glance', 500, PRIO.REACT, Math.random() < 0.5);
+    }
   }
 
   // 판 클리어: 보드 전체가 아래에서 위로 순차 터지고, 다음 판 보드가 쏟아져 내려옴
@@ -605,6 +680,7 @@ export class Game {
     this.tw.update(dt);
     this.fx.update(dt);
     this.faces.update();
+    this.watchdog();
     this.updateHint();
     this.updateScoreDisplay(dt);
     this.render(ts);
