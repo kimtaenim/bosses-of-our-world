@@ -1,9 +1,11 @@
-import { Board } from './board.js';
+import { Board, makeTile } from './board.js';
 import { Tweener, ease, overshoot } from './tween.js';
 import { FX } from './fx.js';
 import { Sprites } from './sprites.js';
 import { targetScore } from '../config.js';
 import { loadProgress, saveProgress } from './storage.js';
+import { EFFECTS } from './effects.js';
+import { Sound } from './audio.js';
 
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
@@ -25,6 +27,7 @@ export class Game {
     this.tw = new Tweener();
     this.fx = new FX(this.J);
     this.sprites = new Sprites(characters, this.T);
+    this.sound = new Sound(config);
 
     this.board = null;
     this.dying = [];       // 그리드에서 빠졌지만 아직 터지는 중인 타일
@@ -116,6 +119,7 @@ export class Game {
   canInput() { return !this.busy; }
 
   onUserInput() {
+    this.sound.unlock();
     this.lastInput = this.tw.time;
     this.clearHint();
   }
@@ -137,7 +141,7 @@ export class Game {
       this.endTurn();
       return;
     }
-    await this.resolve();
+    await this.resolve([b, a]);
     this.endTurn();
   }
 
@@ -159,13 +163,14 @@ export class Game {
 
   // ---------- 매치 해결 루프 ----------
 
-  async resolve() {
+  // swapCells: 스왑한 두 칸 (특수 타일 생성 위치 우선순위 순)
+  async resolve(swapCells) {
     let cascade = 0;
     for (;;) {
       const m = this.board.findMatches();
       if (m.groups.length === 0) break;
       cascade++;
-      await this.resolveStep(m, cascade);
+      await this.resolveStep(m, cascade, cascade === 1 ? swapCells : null);
       if (this.score >= this.target()) {
         await this.levelClear();
         return;
@@ -198,6 +203,7 @@ export class Game {
     this.selected = null;
     this.clearHint();
     this.vibrate([30, 50, 30]);
+    this.sound.play('clear');
     this.showBanner(`판 ${this.level} 클리어!`);
 
     const board = this.board;
@@ -260,35 +266,145 @@ export class Game {
     if (tb) { tb.hx = -dx * k; tb.hy = -dy * k; }
   }
 
-  async resolveStep(m, cascade) {
+  async resolveStep(m, cascade, swapCells) {
     const J = this.J;
     const board = this.board;
-    const cells = [...m.matched];
-    const tiles = cells.map((i) => board.cells[i]);
-    for (const i of cells) board.cells[i] = null;
-    this.dying.push(...tiles);
+    const rows = this.cfg.ROWS, cols = this.cfg.COLS;
+    const HIT = J > 0 ? 40 : 0;
 
-    // 히트스톱: 매치된 타일만 40ms 정지, 1.15배로 부풀며 좌우 2px 떨림
-    if (J > 0) {
-      await this.tw.tween(40, (p) => {
-        for (const t of tiles) {
+    // 1) 4개 이상 매치 그룹 → 특수 타일 생성 위치 (스왑한 칸 우선, 없으면 그룹 중심에 가까운 칸)
+    const spawns = [];
+    for (const g of m.groups) {
+      if (g.cells.length < 4) continue;
+      let at = -1;
+      if (swapCells) {
+        for (const s of swapCells) {
+          const i = board.idx(s.r, s.c);
+          if (g.cells.includes(i)) { at = i; break; }
+        }
+      }
+      if (at < 0) {
+        let sr = 0, sc = 0;
+        for (const i of g.cells) { const [r, c] = board.rc(i); sr += r; sc += c; }
+        sr /= g.cells.length; sc /= g.cells.length;
+        let bestD = Infinity;
+        for (const i of g.cells) {
+          const [r, c] = board.rc(i);
+          const d = (r - sr) ** 2 + (c - sc) ** 2;
+          if (d < bestD) { bestD = d; at = i; }
+        }
+      }
+      spawns.push({ idx: at, type: g.type, cells: g.cells });
+    }
+
+    // 2) 터지는 시각 스케줄 (특수 타일 연쇄 발동 포함). 시각은 스텝 시작 기준 ms.
+    const popAt = new Map();
+    const setMin = (i, t) => { if (!popAt.has(i) || popAt.get(i) > t) popAt.set(i, t); };
+    const triggers = [];
+    const fired = new Set();
+    const plays = [];
+    for (const i of m.matched) {
+      if (board.cells[i].special) triggers.push({ i, t: HIT });
+      else popAt.set(i, HIT);
+    }
+    while (triggers.length) {
+      triggers.sort((a, b) => a.t - b.t);
+      const { i, t } = triggers.shift();
+      if (fired.has(i)) continue;
+      fired.add(i);
+      const tile = board.cells[i];
+      const effect = EFFECTS[this.chars[tile.type].group];
+      popAt.set(i, t);
+      if (!effect) continue;
+      const [r, c] = board.rc(i);
+      plays.push({ t, effect, r, c });
+      for (const a of effect.area(r, c, rows, cols)) {
+        const j = board.idx(a.r, a.c);
+        const tt = t + a.delay;
+        if (j === i) { popAt.set(i, tt); continue; }
+        const other = board.cells[j];
+        if (!other) continue;
+        if (other.special) { if (!fired.has(j)) triggers.push({ i: j, t: tt }); }
+        else setMin(j, tt);
+      }
+    }
+
+    // 3) 그리드 갱신: 제거 + 특수 타일 배치 (연출은 아래에서 시간차로)
+    const removed = [...popAt.entries()].map(([i, t]) => ({ i, t, tile: board.cells[i] }));
+    const matchedTiles = [...m.matched].map((i) => board.cells[i]);
+    for (const e of removed) board.cells[e.i] = null;
+    this.dying.push(...removed.map((e) => e.tile));
+    for (const sp of spawns) {
+      const [r, c] = board.rc(sp.idx);
+      sp.tile = makeTile(sp.type, true, r, c);
+      sp.tile.scale = 0;
+      board.cells[sp.idx] = sp.tile;
+    }
+
+    // 4) 히트스톱: 매치된 타일만 40ms 정지, 1.15배로 부풀며 좌우 2px 떨림
+    if (HIT > 0) {
+      await this.tw.tween(HIT, (p) => {
+        for (const t of matchedTiles) {
           t.scale = 1 + 0.15 * J * Math.min(1, p * 2);
           t.jx = (Math.random() < 0.5 ? -2 : 2) * J;
         }
       });
-      for (const t of tiles) t.jx = 0;
+      for (const t of matchedTiles) t.jx = 0;
     }
 
-    this.stepFeedback(cells, cascade);
-    await Promise.all(tiles.map((t) => this.popTile(t)));
+    this.stepFeedback([...m.matched], cascade);
 
-    this.addScore(tiles.length, cascade);
-    this.dying = this.dying.filter((t) => !tiles.includes(t));
+    // 5) 터짐 / 특수 발동 / 특수 생성 연출
+    let end = 0;
+    for (const e of removed) {
+      const d = e.t - HIT;
+      end = Math.max(end, d + 120);
+      this.tw.after(d, () => this.popTile(e.tile, e.tile.special ? 2 : 1));
+    }
+    for (const pl of plays) {
+      this.tw.after(pl.t - HIT, () => {
+        pl.effect.play(this, pl.r, pl.c, rows, cols);
+        this.fx.shake(8);
+        this.vibrate(30);
+        this.sound.play('special');
+      });
+    }
+    for (const sp of spawns) {
+      end = Math.max(end, 100 + 150);
+      this.spawnSpecial(sp);
+    }
+    await this.tw.wait(end);
+
+    this.addScore(removed.length, cascade);
+    const gone = new Set(removed.map((e) => e.tile));
+    this.dying = this.dying.filter((t) => !gone.has(t));
+  }
+
+  // 주변 타일 파편이 생성 위치로 빨려 들어온(100ms) 뒤 특수 타일이 팝(1.3배 → 1배)
+  spawnSpecial(sp) {
+    const board = this.board;
+    const [r, c] = board.rc(sp.idx);
+    const x = this.cx(c), y = this.cy(r);
+    const color = this.chars[sp.type].color;
+    for (const i of sp.cells) {
+      if (i === sp.idx) continue;
+      const [rr, cc] = board.rc(i);
+      this.fx.suck(this.cx(cc), this.cy(rr), x, y, color, 5, 100);
+    }
+    const t = sp.tile;
+    this.tw.after(100, () => {
+      const J = this.J;
+      this.fx.ring(x, y, this.T * 0.2, this.T * 0.8, 150, 3, '255,230,120');
+      if (J <= 0) { t.scale = 1; return; }
+      this.tw.tween(150, (p) => { t.scale = 1 + 0.3 * J * (1 - p); }, ease.outQuad);
+    });
   }
 
   stepFeedback(cells, cascade) {
     this.vibrate(10);
+    this.sound.play('match');
     if (cascade >= 2) {
+      this.sound.play('chain', cascade - 2);
       let sx = 0, sy = 0;
       for (const i of cells) { const [r, c] = this.board.rc(i); sx += this.cx(c); sy += this.cy(r); }
       this.fx.text(sx / cells.length, sy / cells.length, `x${cascade}`, cascade);

@@ -20,6 +20,16 @@ export const CONFIG = {
   // 낙하 중력 (칸/초²)
   FALL_GRAVITY: 140,
 
+  // 사운드: 슬롯만 있고 기본 무음. true로 바꾸고 파일을 넣으면 재생.
+  SOUND_ENABLED: false,
+  SOUND_VOLUME: 0.8,
+  SOUNDS: {
+    match: 'assets/sounds/match.mp3',
+    special: 'assets/sounds/special.mp3',
+    clear: 'assets/sounds/clear.mp3',
+    chain: 'assets/sounds/chain.mp3', // 연쇄 단계마다 반음씩 피치 상승
+  },
+
   CHARACTERS_URL: 'characters.json',
 };
 
