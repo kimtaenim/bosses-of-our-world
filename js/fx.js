@@ -14,6 +14,7 @@ export class FX {
     this.rings = [];
     this.texts = [];
     this.beams = [];
+    this.flashA = 0;   // 화면 전체 흰 번쩍임
     this.shakeAmp = 0;
     this.shakeX = 0;
     this.shakeY = 0;
@@ -36,6 +37,28 @@ export class FX {
         life: 0, maxLife: rand(0.55, 0.9), kind: 'debris',
       });
     }
+    // 흰 불꽃: 빠르게 튀었다가 금방 사라짐
+    const sparks = Math.round(4 * Math.min(this.juice, 2));
+    for (let i = 0; i < sparks && this.particles.length < MAX_PARTICLES; i++) {
+      const a = rand(0, Math.PI * 2);
+      const v = rand(300, 560) * speed * Math.sqrt(this.juice);
+      this.particles.push({
+        x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+        g: 400, size: rand(2.5, 4), color: '#fffbe6',
+        rot: 0, vr: 0, life: 0, maxLife: rand(0.18, 0.3), kind: 'spark',
+      });
+    }
+  }
+
+  // 점수 팝업 (+30)
+  popup(x, y, str) {
+    if (this.juice <= 0) return;
+    this.texts.push({ x, y, str, t: 0, dur: 0.65, size: 18, color: '#ffffff', kind: 'popup' });
+  }
+
+  flash(a) {
+    if (this.juice <= 0 || this.reduced) return;
+    this.flashA = Math.max(this.flashA, Math.min(1, a * this.juice));
   }
 
   // 착지 먼지 2-3개
@@ -120,6 +143,8 @@ export class FX {
     for (const b of this.beams) b.t += s;
     this.beams = this.beams.filter((b) => b.t < b.dur);
 
+    this.flashA = Math.max(0, this.flashA - dt / 140);
+
     if (this.shakeAmp > 0.2) {
       this.shakeX = rand(-1, 1) * this.shakeAmp;
       this.shakeY = rand(-1, 1) * this.shakeAmp;
@@ -181,10 +206,10 @@ export class FX {
     for (const tx of this.texts) {
       const t = tx.t / tx.dur;
       const rise = 1 - Math.pow(1 - t, 3);
-      const scale = 0.6 + 0.7 * rise;
+      const scale = tx.kind === 'popup' ? 0.8 + 0.4 * Math.min(1, t * 4) : 0.6 + 0.7 * rise;
       const alpha = t > 0.65 ? 1 - (t - 0.65) / 0.35 : 1;
       ctx.save();
-      ctx.translate(tx.x, tx.y - 50 * rise);
+      ctx.translate(tx.x, tx.y - (tx.kind === 'popup' ? 34 : 50) * rise);
       ctx.scale(scale, scale);
       ctx.globalAlpha = alpha;
       ctx.font = `900 ${tx.size}px system-ui, sans-serif`;

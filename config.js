@@ -20,14 +20,15 @@ export const CONFIG = {
 
   // 평소 딴짓(눈 굴리기·곁눈질·깜빡임·깡충) 빈도 배율. 0이면 가만히 있음.
   IDLE_ACTIVITY: 1,
-  IDLE_MIN_MS: 1500, // 타일마다 딴짓 간격 (무작위, IDLE_ACTIVITY로 나눔)
-  IDLE_MAX_MS: 5000,
+  IDLE_MIN_MS: 600, // 타일마다 딴짓 간격 (무작위, IDLE_ACTIVITY로 나눔)
+  IDLE_MAX_MS: 2200,
 
   // 낙하 중력 (칸/초²)
   FALL_GRAVITY: 140,
 
-  // 사운드: 슬롯만 있고 기본 무음. true로 바꾸고 파일을 넣으면 재생.
-  SOUND_ENABLED: false,
+  // 사운드: assets/sounds/에 파일이 있으면 파일, 없으면 합성 효과음(SOUND_SYNTH). 화면 오른쪽 위 버튼으로 음소거.
+  SOUND_ENABLED: true,
+  SOUND_SYNTH: true,
   SOUND_VOLUME: 0.8,
   SOUNDS: {
     match: 'assets/sounds/match.mp3',

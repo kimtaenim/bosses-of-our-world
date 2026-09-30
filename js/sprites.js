@@ -377,6 +377,12 @@ export class Sprites {
   }
 
   // flip: 곁눈질 방향 (true = 왼쪽을 봄)
+  // 이 인물이 그 표정을 실제로 따로 가지고 있는지 (원화가 없으면 플레이스홀더라 전부 있음)
+  has(type, expr) {
+    const imgs = this.faceImgs[type];
+    return !imgs || !!imgs[expr];
+  }
+
   get(tile, expr = tile.expr, flip = tile.flip) {
     if (tile.special) return this.special[tile.type];
     const set = this.normal[tile.type];

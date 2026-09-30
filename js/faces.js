@@ -111,26 +111,49 @@ export class Faces {
       this.motion(t, 520, (p, a) => { t.rot = Math.sin(p * Math.PI * 4) * 0.13 * (1 - p) * a; });
       return;
     }
-    const r = Math.random();
-    if (r < 0.26) {
-      this.set(t, 'blink', 140, PRIO.IDLE);
-      if (Math.random() < 0.3) this.g.tw.after(260, () => this.set(t, 'blink', 120, PRIO.IDLE));
-    } else if (r < 0.48) {
-      this.set(t, 'eyeroll', 1000, PRIO.IDLE);
-      this.motion(t, 1000, (p, a) => { t.rot = Math.sin(p * Math.PI) * 0.12 * a; });
-    } else if (r < 0.7) {
-      const left = Math.random() < 0.5;
-      this.set(t, 'glance', 900, PRIO.IDLE, left);
-      this.motion(t, 900, (p, a) => { t.ox = (left ? -1 : 1) * Math.sin(p * Math.PI) * 2.5 * a; });
-    } else if (r < 0.84) {
-      this.set(t, 'cheer', 500, PRIO.IDLE);
-      this.hop(t, 5, 280);
-    } else if (r < 0.93) {
-      // 평소 얼굴 그대로 으스대며 고개 까딱
-      this.motion(t, 1000, (p, a) => { t.rot = -Math.sin(p * Math.PI) * 0.1 * a; });
-    } else {
-      this.set(t, 'sulk', 900, PRIO.IDLE);
-      this.headShake(t, 600);
+    // 원화에 실제로 있는 표정만 골라 "눈에 보이는" 변화가 나도록
+    const has = (e) => this.g.sprites.has(t.type, e);
+    const pool = IDLE_ACTIONS.filter((a) => a.needs.every(has));
+    let r = Math.random() * pool.reduce((sum, a) => sum + a.w, 0);
+    for (const a of pool) {
+      r -= a.w;
+      if (r <= 0) { a.run(this, t); return; }
     }
   }
 }
+
+// 평소 딴짓 목록: w = 뽑힐 비중, needs = 필요한 표정(원화에 없으면 제외)
+const IDLE_ACTIONS = [
+  { w: 24, needs: ['glance', 'glance_left'], run(f, t) {
+    const left = Math.random() < 0.5;
+    f.set(t, 'glance', 700, PRIO.IDLE, left);
+    f.motion(t, 700, (p, a) => { t.ox = (left ? -1 : 1) * Math.sin(p * Math.PI) * 3 * a; });
+  } },
+  { w: 14, needs: ['sulk'], run(f, t) {
+    f.set(t, 'sulk', 700, PRIO.IDLE);
+    f.headShake(t, 500);
+  } },
+  { w: 12, needs: ['shock'], run(f, t) { // 헉!
+    f.set(t, 'shock', 380, PRIO.IDLE);
+    f.hop(t, 6, 240);
+  } },
+  { w: 8, needs: ['fall'], run(f, t) { // 불안하게 위를 쳐다봄
+    f.set(t, 'fall', 600, PRIO.IDLE);
+    f.motion(t, 600, (p, a) => { t.oy = -Math.sin(p * Math.PI) * 2 * a; });
+  } },
+  { w: 4, needs: ['scream'], run(f, t) { // 가끔 괜히 소리 지름
+    f.set(t, 'scream', 320, PRIO.IDLE);
+    f.motion(t, 320, (p, a) => { t.rot = Math.sin(p * Math.PI * 6) * 0.08 * a; });
+  } },
+  { w: 10, needs: ['eyeroll'], run(f, t) {
+    f.set(t, 'eyeroll', 800, PRIO.IDLE);
+    f.motion(t, 800, (p, a) => { t.rot = Math.sin(p * Math.PI) * 0.12 * a; });
+  } },
+  { w: 10, needs: ['blink'], run(f, t) {
+    f.set(t, 'blink', 140, PRIO.IDLE);
+  } },
+  { w: 10, needs: [], run(f, t) { // 평소 얼굴로 으스대며 깡충 / 까딱
+    if (Math.random() < 0.5) f.hop(t, 6, 280);
+    else f.motion(t, 700, (p, a) => { t.rot = -Math.sin(p * Math.PI) * 0.12 * a; });
+  } },
+];

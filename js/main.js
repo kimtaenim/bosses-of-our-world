@@ -28,6 +28,10 @@ async function main() {
   const canvas = document.getElementById('game');
   const game = new Game(canvas, characters, data, config, hud);
   attachInput(canvas, game);
+  const mute = document.getElementById('mute');
+  const renderMute = () => { mute.textContent = game.sound.muted ? '🔇' : '🔊'; };
+  renderMute();
+  mute.addEventListener('click', () => { game.sound.setMuted(!game.sound.muted); renderMute(); });
   await game.init(startLevel);
   window.__game = game; // 디버그용
 }

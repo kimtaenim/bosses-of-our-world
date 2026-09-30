@@ -419,6 +419,7 @@ export class Game {
       this.tw.after(pl.t - HIT, () => {
         pl.effect.play(this, pl.r, pl.c, rows, cols);
         this.reactToSpecial(pl, doomed);
+        this.fx.flash(0.35);
         this.fx.shake(8);
         this.vibrate(30);
         this.sound.play('special');
@@ -430,7 +431,7 @@ export class Game {
     }
     await this.tw.wait(end);
 
-    this.addScore(removed.length, cascade);
+    this.addScore(removed.length, cascade, [...m.matched]);
     const gone = new Set(removed.map((e) => e.tile));
     this.dying = this.dying.filter((t) => !gone.has(t));
   }
@@ -464,25 +465,40 @@ export class Game {
       for (const i of cells) { const [r, c] = this.board.rc(i); sx += this.cx(c); sy += this.cy(r); }
       this.fx.text(sx / cells.length, sy / cells.length, `x${cascade}`, cascade);
     }
-    if (cascade >= 3) {
-      this.fx.shake(Math.min(2 * (cascade - 2), 10));
-      // 큰 연쇄: 보드 여기저기서 깜짝 놀라 펄쩍
+    // 흔들림: 한 번에 4개 이상 터지면 살짝, 연쇄가 이어질수록 크게 (최대 10px)
+    const big = cells.length >= 4 ? 2 : 0;
+    if (cascade >= 2 || big) this.fx.shake(Math.min(Math.max(big, 2 * (cascade - 1)), 10));
+    // 연쇄: 보드 여기저기서 깜짝 놀라 펄쩍 (연쇄가 클수록 많이)
+    if (cascade >= 2) {
+      const chance = Math.min(0.3 + 0.15 * (cascade - 2), 0.8);
       for (const t of this.board.cells) {
-        if (t && Math.random() < 0.45 && this.faces.set(t, 'shock', 380, PRIO.REACT)) this.faces.hop(t, 4 + cascade, 260);
+        if (t && Math.random() < chance && this.faces.set(t, 'shock', 380, PRIO.REACT)) this.faces.hop(t, 4 + cascade, 260);
       }
     }
   }
 
-  addScore(count, cascade) {
-    this.score += Math.floor(count * 10 * Math.pow(1.5, cascade - 1));
+  addScore(count, cascade, cells = null) {
+    const pts = Math.floor(count * 10 * Math.pow(1.5, cascade - 1));
+    this.score += pts;
     this.updateHud();
+    if (cells && cells.length) {
+      let sx = 0, sy = 0;
+      for (const i of cells) { const [r, c] = this.board.rc(i); sx += this.cx(c); sy += this.cy(r); }
+      this.fx.popup(sx / cells.length, sy / cells.length + (cascade >= 2 ? 26 : 0), `+${pts}`);
+    }
+    return pts;
   }
 
   // 터진 칸 주변 8칸: 폭발 쪽을 쳐다보며 움찔
+  // 그 바깥 2칸은 폭발 쪽을 쳐다봄
   reactAround(r, c) {
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        if (dr || dc) this.faces.flinch(this.board.get(r + dr, c + dc), c, r);
+    for (let dr = -2; dr <= 2; dr++) {
+      for (let dc = -2; dc <= 2; dc++) {
+        if (!dr && !dc) continue;
+        const t = this.board.get(r + dr, c + dc);
+        if (!t) continue;
+        if (Math.abs(dr) <= 1 && Math.abs(dc) <= 1) this.faces.flinch(t, c, r);
+        else this.faces.lookAt(t, c, r, 500);
       }
     }
   }
@@ -518,6 +534,7 @@ export class Game {
     return this.tw.tween(120, (p) => {
       t.scale = s0 + (s1 - s0) * p;
       t.alpha = 1 - p;
+      t.flash = Math.max(0, 1 - p * 2.5); // 터지는 순간 하얗게 번쩍
     }, ease.outQuad);
   }
 
@@ -637,6 +654,12 @@ export class Game {
     }
 
     this.fx.draw(ctx);
+
+    if (this.fx.flashA > 0) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = `rgba(255,255,255,${this.fx.flashA})`;
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
   }
 
   drawTile(t, selected = false, ts = 0) {
@@ -660,6 +683,12 @@ export class Game {
     ctx.translate(0, T / 2);
     ctx.scale(t.sx, t.sy);
     ctx.drawImage(spr, -T / 2, -T, T, T);
+    if (t.flash > 0) {
+      ctx.globalAlpha = t.alpha * t.flash * 0.85;
+      ctx.fillStyle = '#ffffff';
+      this.roundRect(-T / 2 + 1, -T + 1, T - 2, T - 2, T * 0.22);
+      ctx.fill();
+    }
     ctx.restore();
     ctx.globalAlpha = 1;
   }

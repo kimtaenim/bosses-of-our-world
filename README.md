@@ -84,7 +84,8 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 
 ## 사운드
 
-`assets/sounds/`에 `match.mp3`, `special.mp3`, `clear.mp3`, `chain.mp3`를 넣고 `config.js`의 `SOUND_ENABLED: true`.
+기본으로 켜져 있고, 화면 오른쪽 위 🔊 버튼으로 끈다(선택은 폰에 저장).
+`assets/sounds/`에 `match.mp3`, `special.mp3`, `clear.mp3`, `chain.mp3`를 넣으면 그 파일을, 없으면 Web Audio로 합성한 효과음을 쓴다.
 `chain`은 연쇄 단계마다 반음씩 높아진다 (x2 = 원음, x3 = +1반음 ...).
 
 ## 특수 효과 추가
