@@ -6,15 +6,17 @@ import { targetScore } from '../config.js';
 import { loadProgress, saveProgress } from './storage.js';
 import { EFFECTS } from './effects.js';
 import { Sound } from './audio.js';
+import { Faces, PRIO } from './faces.js';
 
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
 export class Game {
-  constructor(canvas, characters, levels, config, hud) {
+  // data: characters.json 내용 (characters, levels, expressions, expressionFallback)
+  constructor(canvas, characters, data, config, hud) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.chars = characters;
-    this.levels = levels;
+    this.levels = data.levels;
     this.cfg = config;
     this.hud = hud;
 
@@ -27,7 +29,8 @@ export class Game {
 
     this.tw = new Tweener();
     this.fx = new FX(this.J);
-    this.sprites = new Sprites(characters, this.T);
+    this.sprites = new Sprites(characters, this.T, data.expressions, data.expressionFallback);
+    this.faces = new Faces(this);
     this.sound = new Sound(config);
 
     this.board = null;
@@ -125,6 +128,12 @@ export class Game {
     }
     await this.animateFalls(falls, (f) => (rows - 1 - f.toR) * 35 + f.c * 12 + Math.random() * 30);
     this.lastInput = this.tw.time;
+    // 착지 후 다 같이 환호 (입력은 막지 않음)
+    for (const f of falls) {
+      this.tw.after(260 + f.c * 35 + f.toR * 15, () => {
+        if (this.faces.set(f.tile, 'cheer', 650, PRIO.REACT)) this.faces.hop(f.tile, 7, 320);
+      });
+    }
   }
 
   target() { return targetScore(this.level); }
@@ -147,12 +156,21 @@ export class Game {
     this.clearHint();
     const board = this.board;
     const ta = board.get(a.r, a.c), tb = board.get(b.r, b.c);
+    for (const t of [ta, tb]) {
+      this.faces.cancelMotion(t);
+      this.faces.set(t, 'nervous', 400, PRIO.REACT);
+    }
 
     board.swap(a, b);
     await this.animateSwap(ta, a, b, tb);
     if (board.findMatches().groups.length === 0) {
       board.swap(a, b);
       await this.animateSwap(ta, b, a, tb);
+      // 헛스왑: 둘 다 삐져서 도리도리
+      for (const t of [ta, tb]) {
+        this.faces.set(t, 'sulk', 900, PRIO.REACT);
+        this.faces.headShake(t);
+      }
       this.endTurn();
       return;
     }
@@ -203,6 +221,8 @@ export class Game {
       for (let c = 0; c < this.cfg.COLS; c++) {
         const t = this.board.get(r, c);
         moves.push({ t, x0: t.x, y0: t.y, x1: c, y1: r });
+        this.faces.cancelMotion(t);
+        this.faces.set(t, 'eyeroll', 650, PRIO.REACT);
       }
     }
     await this.tw.tween(380, (p) => {
@@ -230,6 +250,8 @@ export class Game {
         if (!t) continue;
         board.cells[board.idx(r, c)] = null;
         this.dying.push(t);
+        this.faces.cancelMotion(t);
+        this.faces.set(t, 'shock', Infinity, PRIO.DOOM);
         const delay = (rows - 1 - r) * 55 + c * 10;
         last = Math.max(last, delay);
         this.tw.after(delay, () => {
@@ -279,6 +301,14 @@ export class Game {
     const ta = this.board.get(a.r, a.c), tb = this.board.get(b.r, b.c);
     if (ta) { ta.hx = dx * k; ta.hy = dy * k; }
     if (tb) { tb.hx = -dx * k; tb.hy = -dy * k; }
+    // 서로를 쳐다봄 (가로: 곁눈질, 세로: 아래 타일은 눈 치켜뜨고 위 타일은 긴장)
+    if (dx !== 0) {
+      this.faces.set(ta, 'glance', 150, PRIO.REACT, dx < 0);
+      this.faces.set(tb, 'glance', 150, PRIO.REACT, dx > 0);
+    } else {
+      this.faces.set(ta, 'nervous', 150, PRIO.REACT);
+      this.faces.set(tb, 'eyeroll', 150, PRIO.REACT);
+    }
   }
 
   async resolveStep(m, cascade, swapCells) {
@@ -347,6 +377,7 @@ export class Game {
     // 3) 그리드 갱신: 제거 + 특수 타일 배치 (연출은 아래에서 시간차로)
     const removed = [...popAt.entries()].map(([i, t]) => ({ i, t, tile: board.cells[i] }));
     const matchedTiles = [...m.matched].map((i) => board.cells[i]);
+    const doomed = new Map(removed.map((e) => [e.i, e.tile]));
     for (const e of removed) board.cells[e.i] = null;
     this.dying.push(...removed.map((e) => e.tile));
     for (const sp of spawns) {
@@ -356,7 +387,11 @@ export class Game {
       board.cells[sp.idx] = sp.tile;
     }
 
-    // 4) 히트스톱: 매치된 타일만 40ms 정지, 1.15배로 부풀며 좌우 2px 떨림
+    // 4) 히트스톱: 매치된 타일만 40ms 정지, 1.15배로 부풀며 좌우 2px 떨림 (표정: 깜짝 놀람)
+    for (const t of matchedTiles) {
+      this.faces.cancelMotion(t);
+      this.faces.set(t, 'shock', Infinity, PRIO.DOOM);
+    }
     if (HIT > 0) {
       await this.tw.tween(HIT, (p) => {
         for (const t of matchedTiles) {
@@ -374,11 +409,16 @@ export class Game {
     for (const e of removed) {
       const d = e.t - HIT;
       end = Math.max(end, d + 120);
-      this.tw.after(d, () => this.popTile(e.tile, e.tile.special ? 2 : 1));
+      const [pr, pc] = board.rc(e.i);
+      this.tw.after(d, () => {
+        this.popTile(e.tile, e.tile.special ? 2 : 1);
+        this.reactAround(pr, pc);
+      });
     }
     for (const pl of plays) {
       this.tw.after(pl.t - HIT, () => {
         pl.effect.play(this, pl.r, pl.c, rows, cols);
+        this.reactToSpecial(pl, doomed);
         this.fx.shake(8);
         this.vibrate(30);
         this.sound.play('special');
@@ -424,7 +464,13 @@ export class Game {
       for (const i of cells) { const [r, c] = this.board.rc(i); sx += this.cx(c); sy += this.cy(r); }
       this.fx.text(sx / cells.length, sy / cells.length, `x${cascade}`, cascade);
     }
-    if (cascade >= 3) this.fx.shake(Math.min(2 * (cascade - 2), 10));
+    if (cascade >= 3) {
+      this.fx.shake(Math.min(2 * (cascade - 2), 10));
+      // 큰 연쇄: 보드 여기저기서 깜짝 놀라 펄쩍
+      for (const t of this.board.cells) {
+        if (t && Math.random() < 0.45 && this.faces.set(t, 'shock', 380, PRIO.REACT)) this.faces.hop(t, 4 + cascade, 260);
+      }
+    }
   }
 
   addScore(count, cascade) {
@@ -432,9 +478,38 @@ export class Game {
     this.updateHud();
   }
 
+  // 터진 칸 주변 8칸: 폭발 쪽을 쳐다보며 움찔
+  reactAround(r, c) {
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr || dc) this.faces.flinch(this.board.get(r + dr, c + dc), c, r);
+      }
+    }
+  }
+
+  // 특수 발동: 영향 범위 안의 타일은 공포, 가까운 타일은 크게 움찔, 나머지는 쳐다봄
+  // doomed: 이번 스텝에 터질 타일 (idx → tile, 이미 그리드에서 빠져 있음)
+  reactToSpecial(pl, doomed) {
+    const board = this.board;
+    const area = new Set(pl.effect.area(pl.r, pl.c, this.cfg.ROWS, this.cfg.COLS).map((a) => board.idx(a.r, a.c)));
+    for (const i of area) {
+      const t = doomed.get(i);
+      if (t && t.expr !== 'scream') this.faces.set(t, 'shock', Infinity, PRIO.DOOM);
+    }
+    for (let r = 0; r < this.cfg.ROWS; r++) {
+      for (let c = 0; c < this.cfg.COLS; c++) {
+        const t = board.get(r, c);
+        if (!t || area.has(board.idx(r, c))) continue;
+        if (Math.max(Math.abs(r - pl.r), Math.abs(c - pl.c)) <= 2) this.faces.flinch(t, pl.c, pl.r, true);
+        else this.faces.lookAt(t, pl.c, pl.r, 700);
+      }
+    }
+  }
+
   // 터짐: 120ms 동안 1.4배로 커지며 페이드아웃 + 파편 + 흰 링
   popTile(t, particleMul = 1, speed = 1) {
     const J = this.J;
+    this.faces.set(t, 'scream', Infinity, PRIO.DOOM);
     const x = this.cx(t.x), y = this.cy(t.y);
     this.fx.burst(x, y, this.chars[t.type].color, randInt(8, 12) * particleMul, speed);
     this.fx.ring(x, y, this.T * 0.25, this.T, 150);
@@ -454,6 +529,8 @@ export class Game {
       const d = f.toR - f.fromY;
       t.x = f.c;
       t.y = f.fromY;
+      this.faces.cancelMotion(t);
+      this.faces.set(t, 'fall', Infinity, PRIO.MOVE);
       const dur = Math.sqrt((2 * d) / g);
       const delay = delayFn ? delayFn(f) : 0;
       return this.tw.tween(dur, (p) => { t.y = f.fromY + d * p * p; }, ease.linear, delay)
@@ -463,6 +540,7 @@ export class Game {
 
   land(t) {
     t.y = Math.round(t.y);
+    this.faces.set(t, 'squish', 230, PRIO.MOVE);
     this.fx.dust(this.cx(t.x), this.cy(t.y) + this.T / 2 - 2);
     const A = 0.15 * this.J;
     if (A <= 0) return;
@@ -509,6 +587,7 @@ export class Game {
     this.lastTs = ts;
     this.tw.update(dt);
     this.fx.update(dt);
+    this.faces.update();
     this.updateHint();
     this.updateScoreDisplay(dt);
     this.render(ts);
@@ -541,7 +620,8 @@ export class Game {
     ctx.beginPath();
     ctx.rect(-20, 0, this.BW + 40, this.BH + 40);
     ctx.clip();
-    if (this.board) for (const t of this.board.cells) if (t) this.drawTile(t);
+    const sel = this.selected && this.board && this.board.get(this.selected.r, this.selected.c);
+    if (this.board) for (const t of this.board.cells) if (t) this.drawTile(t, t === sel, ts);
     ctx.restore();
     for (const t of this.dying) this.drawTile(t);
 
@@ -559,15 +639,23 @@ export class Game {
     this.fx.draw(ctx);
   }
 
-  drawTile(t) {
+  drawTile(t, selected = false, ts = 0) {
     if (t.alpha <= 0 || t.scale <= 0) return;
-    const spr = this.sprites.get(t);
+    // 집힌 타일은 긴장해서 달달 떪
+    const spr = this.sprites.get(t, selected && !t.special ? 'nervous' : t.expr, selected ? false : t.flip);
     if (!spr) return;
     const ctx = this.ctx;
     const T = this.T;
+    const amp = this.faces.amp;
+    let ox = t.jx + (t.hx || 0) + t.ox;
+    let oy = (t.hy || 0) + t.oy;
+    if (selected) ox += (Math.random() * 2 - 1) * 0.9 * amp;
+    // 평소 숨쉬듯 살짝 들썩
+    if (t.exprPrio === 0) oy += Math.sin(ts / 520 + t.phase) * 0.8 * amp * this.faces.activity;
     ctx.globalAlpha = t.alpha;
     ctx.save();
-    ctx.translate(this.cx(t.x) + t.jx + (t.hx || 0), this.cy(t.y) + (t.hy || 0));
+    ctx.translate(this.cx(t.x) + ox, this.cy(t.y) + oy);
+    if (t.rot) ctx.rotate(t.rot);
     ctx.scale(t.scale, t.scale);
     ctx.translate(0, T / 2);
     ctx.scale(t.sx, t.sy);

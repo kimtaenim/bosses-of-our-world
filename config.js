@@ -17,6 +17,11 @@ export const CONFIG = {
   // 입력이 없을 때 힌트까지 대기 시간
   HINT_DELAY_MS: 2000,
 
+  // 평소 딴짓(눈 굴리기·곁눈질·깜빡임·깡충) 빈도 배율. 0이면 가만히 있음.
+  IDLE_ACTIVITY: 1,
+  IDLE_MIN_MS: 1500, // 타일마다 딴짓 간격 (무작위, IDLE_ACTIVITY로 나눔)
+  IDLE_MAX_MS: 5000,
+
   // 낙하 중력 (칸/초²)
   FALL_GRAVITY: 140,
 

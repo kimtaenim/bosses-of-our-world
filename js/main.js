@@ -26,7 +26,7 @@ async function main() {
     banner: document.getElementById('banner'),
   };
   const canvas = document.getElementById('game');
-  const game = new Game(canvas, characters, data.levels, config, hud);
+  const game = new Game(canvas, characters, data, config, hud);
   attachInput(canvas, game);
   await game.init(startLevel);
   window.__game = game; // 디버그용

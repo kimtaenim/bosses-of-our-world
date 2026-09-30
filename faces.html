@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>표정 갤러리</title>
+  <style>
+    body { margin: 0; padding: 16px; background: #1c1f33; color: #fff; font-family: system-ui, sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p { font-size: 12px; opacity: 0.7; margin: 0 0 12px; }
+    label { font-size: 13px; margin-right: 12px; }
+    .wrap { overflow-x: auto; }
+    table { border-collapse: collapse; margin-top: 12px; }
+    th { font-size: 11px; font-weight: 600; opacity: 0.75; padding: 4px; text-align: center; white-space: nowrap; }
+    th.name { text-align: left; }
+    td { padding: 3px; text-align: center; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <h1>표정 갤러리</h1>
+  <p>게임과 같은 크기(56px)로 보인다. 원화를 <code>assets/faces/&lt;id&gt;/&lt;표정&gt;.png</code>에 넣으면 여기서 바로 확인할 수 있다.</p>
+  <label><input type="checkbox" id="big"> 2배로 보기</label>
+  <label><input type="checkbox" id="alt"> 시진핑 노랑</label>
+  <div class="wrap"><table id="grid"></table></div>
+  <script type="module">
+    import { Sprites } from './js/sprites.js';
+
+    const LABELS = {
+      stern: '근엄', eyeroll: '눈굴림', shock: '놀람', scream: '비명', fall: '낙하', smug: '의기양양',
+      blink: '깜빡', glance: '곁눈질', nervous: '긴장', squish: '찌그러짐', sulk: '삐짐', cheer: '환호',
+    };
+    const data = await (await fetch('characters.json')).json();
+    const table = document.getElementById('grid');
+
+    async function render() {
+      const big = document.getElementById('big').checked;
+      const alt = document.getElementById('alt').checked;
+      const chars = data.characters.map((ch) => ({ ...ch, color: alt && ch.colorAlt ? ch.colorAlt : ch.color }));
+      const sprites = new Sprites(chars, 56, data.expressions, data.expressionFallback);
+      await sprites.load();
+      const scale = big ? 2 : 1;
+      sprites.build(scale * (window.devicePixelRatio || 1));
+      const exprs = data.expressions;
+      table.innerHTML = '';
+      const head = table.insertRow();
+      head.innerHTML = '<th class="name"></th>' + exprs.map((e) => `<th>${LABELS[e] || e}<br>${e}</th>`).join('') + '<th>특수</th>';
+      chars.forEach((ch, i) => {
+        const row = table.insertRow();
+        row.innerHTML = `<th class="name">${ch.name}</th>`;
+        const cells = [...exprs.map((e) => sprites.normal[i][e]), sprites.special[i]];
+        for (const src of cells) {
+          const cv = document.createElement('canvas');
+          cv.width = src.width; cv.height = src.height;
+          cv.style.width = cv.style.height = `${56 * scale}px`;
+          cv.getContext('2d').drawImage(src, 0, 0);
+          row.insertCell().appendChild(cv);
+        }
+      });
+    }
+    document.getElementById('big').onchange = render;
+    document.getElementById('alt').onchange = render;
+    render();
+  </script>
+</body>
+</html>

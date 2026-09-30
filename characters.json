@@ -1,13 +1,18 @@
 {
   "characters": [
-    { "id": "trump", "name": "트럼프",   "group": "politician", "color": "#D62828", "initial": "T", "face": "assets/faces/trump.png", "special": "assets/special/trump.png", "specialLabel": "성조기" },
-    { "id": "kim",   "name": "김정은",   "group": "politician", "color": "#1B1B1B", "initial": "K", "face": "assets/faces/kim.png",   "special": "assets/special/kim.png",   "specialLabel": "인공기" },
-    { "id": "putin", "name": "푸틴",     "group": "politician", "color": "#0039A6", "initial": "P", "face": "assets/faces/putin.png", "special": "assets/special/putin.png", "specialLabel": "러시아 국기" },
-    { "id": "xi",    "name": "시진핑",   "group": "politician", "color": "#DE2910", "colorAlt": "#FFD700", "initial": "X", "face": "assets/faces/xi.png", "special": "assets/special/xi.png", "specialLabel": "중국 국기" },
-    { "id": "musk",  "name": "머스크",   "group": "business",   "color": "#2A2A2A", "initial": "M", "face": "assets/faces/musk.png",  "special": "assets/special/musk.png",  "specialLabel": "자동차" },
-    { "id": "bezos", "name": "베조스",   "group": "business",   "color": "#FF9900", "initial": "B", "face": "assets/faces/bezos.png", "special": "assets/special/bezos.png", "specialLabel": "미소 화살표" },
-    { "id": "zuck",  "name": "저커버그", "group": "business",   "color": "#1877F2", "initial": "Z", "face": "assets/faces/zuck.png",  "special": "assets/special/zuck.png",  "specialLabel": "SNS" }
+    { "id": "trump", "name": "트럼프",   "group": "politician", "color": "#D62828", "initial": "T", "faceDir": "assets/faces/trump/",  "special": "assets/special/trump.png", "specialLabel": "성조기" },
+    { "id": "kim",   "name": "김정은",   "group": "politician", "color": "#1B1B1B", "initial": "K", "faceDir": "assets/faces/kim/",    "special": "assets/special/kim.png",   "specialLabel": "인공기" },
+    { "id": "putin", "name": "푸틴",     "group": "politician", "color": "#0039A6", "initial": "P", "faceDir": "assets/faces/putin/",  "special": "assets/special/putin.png", "specialLabel": "러시아 국기" },
+    { "id": "xi",    "name": "시진핑",   "group": "politician", "color": "#DE2910", "colorAlt": "#FFD700", "initial": "X", "faceDir": "assets/faces/xi/",     "special": "assets/special/xi.png", "specialLabel": "중국 국기" },
+    { "id": "musk",  "name": "머스크",   "group": "business",   "color": "#2A2A2A", "initial": "M", "faceDir": "assets/faces/musk/",   "special": "assets/special/musk.png",  "specialLabel": "자동차" },
+    { "id": "bezos", "name": "베조스",   "group": "business",   "color": "#FF9900", "initial": "B", "faceDir": "assets/faces/bezos/",  "special": "assets/special/bezos.png", "specialLabel": "미소 화살표" },
+    { "id": "zuck",  "name": "저커버그", "group": "business",   "color": "#1877F2", "initial": "Z", "faceDir": "assets/faces/zuck/",   "special": "assets/special/zuck.png",  "specialLabel": "SNS" }
   ],
+  "expressions": ["stern", "eyeroll", "shock", "scream", "fall", "smug", "blink", "glance", "nervous", "squish", "sulk", "cheer"],
+  "expressionFallback": {
+    "eyeroll": "stern", "shock": "stern", "scream": "shock", "fall": "shock", "smug": "stern",
+    "blink": "stern", "glance": "eyeroll", "nervous": "stern", "squish": "scream", "sulk": "stern", "cheer": "smug"
+  },
   "levels": {
     "order": ["trump", "kim", "musk", "bezos", "zuck", "putin", "xi"],
     "counts": [4, 5, 6, 7]
