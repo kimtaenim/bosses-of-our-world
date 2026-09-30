@@ -263,26 +263,34 @@ export class Game {
     if (!this.board.findMove()) await this.shuffleBoard();
   }
 
-  // 둘 곳이 없을 때: "섞는 중!" 표시와 함께 가운데로 빨려 들었다가 빙글빙글 새 자리로 흩어짐
+  // 둘 곳이 없을 때: "리셔플!"을 먼저 띄우고, 가운데로 빨려 들었다가 빙글빙글 새 자리로 흩어짐
   async shuffleBoard() {
     this.selected = null;
     this.clearHint();
-    this.showBanner('섞는 중!');
+    // 1) 먼저 "리셔플!"을 띄우고, 얼굴들이 놀라 부들부들 떠는 동안 잠깐 기다림
+    this.showBanner('리셔플!');
     this.sound.play('chain', 5);
     this.vibrate(20);
+    for (const t of this.board.cells) {
+      if (!t) continue;
+      this.faces.cancelMotion(t);
+      this.faces.set(t, 'shock', 1600, PRIO.MOVE);
+    }
+    await this.tw.tween(650, () => {
+      for (const t of this.board.cells) if (t) t.jx = (Math.random() * 2 - 1) * 1.5 * Math.min(this.J, 1.5);
+    });
+    for (const t of this.board.cells) if (t) t.jx = 0;
     this.board.shuffle();
     const cx = (this.cfg.COLS - 1) / 2, cy = (this.cfg.ROWS - 1) / 2;
     const moves = [];
     for (let r = 0; r < this.cfg.ROWS; r++) {
       for (let c = 0; c < this.cfg.COLS; c++) {
         const t = this.board.get(r, c);
-        this.faces.cancelMotion(t);
-        this.faces.set(t, 'shock', 900, PRIO.MOVE);
         moves.push({ t, x0: t.x, y0: t.y, x1: c, y1: r, spin: (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random()) });
       }
     }
     const J = Math.min(this.J, 1.5);
-    // 1) 가운데로 모이며 작아짐
+    // 2) 가운데로 모이며 작아짐
     await this.tw.tween(260, (p) => {
       for (const m of moves) {
         m.t.x = m.x0 + (cx - m.x0) * p * 0.7;
@@ -292,7 +300,7 @@ export class Game {
       }
     }, ease.inQuad);
     this.fx.shake(4);
-    // 2) 빙글 돌며 새 자리로 흩어짐
+    // 3) 빙글 돌며 새 자리로 흩어짐
     await this.tw.tween(420, (p) => {
       for (const m of moves) {
         const sx = m.x0 + (cx - m.x0) * 0.7, sy = m.y0 + (cy - m.y0) * 0.7;
