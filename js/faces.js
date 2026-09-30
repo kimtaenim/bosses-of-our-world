@@ -31,7 +31,7 @@ export class Faces {
   }
 
   reset(t) {
-    t.expr = 'stern';
+    t.expr = 'smirk';
     t.exprUntil = 0;
     t.exprPrio = 0;
     t.flip = false;
@@ -96,7 +96,7 @@ export class Faces {
     const cfg = this.g.cfg;
     for (const t of board.cells) {
       if (!t) continue;
-      if (t.exprUntil <= now && (t.exprPrio !== 0 || t.expr !== 'stern')) this.reset(t);
+      if (t.exprUntil <= now && (t.exprPrio !== 0 || t.expr !== 'smirk')) this.reset(t);
       if (act <= 0) continue;
       if (!t.nextIdle) t.nextIdle = now + rand(cfg.IDLE_MIN_MS, cfg.IDLE_MAX_MS) / act;
       if (now < t.nextIdle) continue;
@@ -123,10 +123,10 @@ export class Faces {
       this.set(t, 'glance', 900, PRIO.IDLE, left);
       this.motion(t, 900, (p, a) => { t.ox = (left ? -1 : 1) * Math.sin(p * Math.PI) * 2.5 * a; });
     } else if (r < 0.84) {
-      this.set(t, 'smug', 500, PRIO.IDLE);
+      this.set(t, 'cheer', 500, PRIO.IDLE);
       this.hop(t, 5, 280);
     } else if (r < 0.93) {
-      this.set(t, 'smug', 1000, PRIO.IDLE);
+      // 평소 얼굴 그대로 으스대며 고개 까딱
       this.motion(t, 1000, (p, a) => { t.rot = -Math.sin(p * Math.PI) * 0.1 * a; });
     } else {
       this.set(t, 'sulk', 900, PRIO.IDLE);

@@ -1,21 +1,19 @@
 // 인물 타일 스프라이트. 표정별 얼굴 이미지가 없으면 코드로 그린 플레이스홀더 얼굴을 쓴다.
 // 스프라이트는 화면 해상도에 맞춰 오프스크린 캔버스로 미리 렌더링해 둔다.
 //
-// 얼굴 이미지 경로: <faceDir><표정>.png  (예: assets/faces/trump/stern.png)
-// 기본 표정(stern)이 없으면 그 인물은 전부 플레이스홀더. 일부 표정만 있으면
-// 빠진 표정은 expressionFallback을 따라 있는 이미지로 대체한다.
+// 얼굴 이미지 경로: <faceDir><표정>.png  (예: assets/faces/trump/smirk.png)
+// 원화는 7컷(smirk, shock, scream, fall, sulk, glance, glance_left). 나머지 표정은
+// expressionFallback을 따라 7컷 중 하나로 대체된다. 기본 표정(smirk)이 없으면 전부 플레이스홀더.
 // 원화는 절대 좌우 반전하지 않는다(가르마·앞머리 방향이 뒤집히므로).
-// 오른쪽 곁눈질은 glance, 왼쪽은 glance_left 그림을 따로 쓰고, glance_left가 없으면 eyeroll로 대체.
+// 오른쪽 곁눈질은 glance, 왼쪽은 glance_left 그림을 따로 쓴다.
 // 플레이스홀더 얼굴은 좌우 대칭이라 glance_left를 glance 반전으로 그린다.
 
 export const DEFAULT_EXPRESSIONS = [
-  'stern', 'eyeroll', 'shock', 'scream', 'fall', 'smug',
-  'blink', 'glance', 'glance_left', 'nervous', 'squish', 'sulk', 'cheer',
+  'smirk', 'shock', 'scream', 'fall', 'sulk', 'glance', 'glance_left', 'eyeroll', 'blink', 'nervous', 'squish', 'cheer',
 ];
 
 export const DEFAULT_FALLBACK = {
-  eyeroll: 'stern', shock: 'stern', scream: 'shock', fall: 'shock', smug: 'stern',
-  blink: 'stern', glance: 'eyeroll', glance_left: 'eyeroll', nervous: 'stern', squish: 'scream', sulk: 'stern', cheer: 'smug',
+  shock: 'smirk', scream: 'shock', fall: 'shock', sulk: 'smirk', glance: 'smirk', glance_left: 'smirk', eyeroll: 'glance', blink: 'smirk', nervous: 'shock', squish: 'scream', cheer: 'smirk',
 };
 
 function loadImage(src) {
@@ -99,11 +97,6 @@ function drawPlaceholderFace(ctx, expr, bg, fg) {
   const both = (fn) => { fn(EYE_L, -1); fn(EYE_R, 1); };
 
   switch (expr) {
-    case 'stern': // 근엄: 찌푸린 눈썹, 반쯤 내린 눈꺼풀, 굳게 다문 입
-      line([12, 17, 24, 21]); line([44, 17, 32, 21]);
-      both((x) => eye(x, EYE_Y, 5.5, 0, 1.2, 2.6, 0.3));
-      line([21, 43, 24, 41, 32, 41, 35, 43]);
-      break;
     case 'eyeroll': // 눈동자 굴리기: 위로 치켜뜬 눈, 비뚤어진 입
       line([12, 15, 23, 14]); line([33, 14, 44, 15]);
       both((x) => eye(x, EYE_Y, 5.8, 0.5, -3.6, 2.6, 0, 0.3));
@@ -167,7 +160,7 @@ function drawPlaceholderFace(ctx, expr, bg, fg) {
       ctx.lineWidth = 2.2;
       ctx.stroke();
       break;
-    case 'smug': // 의기양양: 한쪽 눈썹 치켜올림, 게슴츠레한 눈, 씩 웃음
+    case 'smirk': // 기본: 얄밉게 웃음 (한쪽 눈썹 치켜올림, 게슴츠레한 눈, 씩 웃음)
       line([12, 19, 23, 19]); line([33, 16, 44, 13]);
       both((x) => eye(x, EYE_Y, 5.5, 1.5, 1, 2.6, 0.5));
       ctx.beginPath();
@@ -211,10 +204,10 @@ export class Sprites {
 
   async loadFaces(ch) {
     if (!ch.faceDir) return null;
-    const base = await loadImage(`${ch.faceDir}stern.png`);
+    const base = await loadImage(`${ch.faceDir}smirk.png`);
     if (!base) return null;
-    const imgs = { stern: base };
-    const rest = this.expressions.filter((e) => e !== 'stern');
+    const imgs = { smirk: base };
+    const rest = this.expressions.filter((e) => e !== 'smirk');
     const loaded = await Promise.all(rest.map((e) => loadImage(`${ch.faceDir}${e}.png`)));
     rest.forEach((e, i) => { if (loaded[i]) imgs[e] = loaded[i]; });
     return imgs;
@@ -227,7 +220,7 @@ export class Sprites {
       if (imgs[e]) return imgs[e];
       e = this.fallback[e];
     }
-    return imgs.stern;
+    return imgs.smirk;
   }
 
   // pxScale = 논리 px → 실제 픽셀 배율 (보드 스케일 × devicePixelRatio)
@@ -346,6 +339,6 @@ export class Sprites {
     if (tile.special) return this.special[tile.type];
     const set = this.normal[tile.type];
     const e = expr === 'glance' && flip ? 'glance_left' : expr;
-    return set && (set[e] || set.stern);
+    return set && (set[e] || set.smirk);
   }
 }

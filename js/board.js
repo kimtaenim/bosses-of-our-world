@@ -11,7 +11,7 @@ export function makeTile(type, special = false, r = 0, c = 0) {
     x: c, y: r,    // 셀 단위 렌더 위치
     scale: 1, sx: 1, sy: 1, alpha: 1, jx: 0,
     // 표정·몸짓 (faces.js)
-    expr: 'stern', exprUntil: 0, exprPrio: 0, flip: false,
+    expr: 'smirk', exprUntil: 0, exprPrio: 0, flip: false,
     ox: 0, oy: 0, rot: 0, motion: 0, nextIdle: 0, phase: Math.random() * Math.PI * 2,
   };
 }
