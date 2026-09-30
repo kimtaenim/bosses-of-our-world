@@ -1,7 +1,7 @@
 // 게임 설정. 코드 수정 없이 여기 값만 바꿔서 조절한다.
 export const CONFIG = {
   // 연출 전체 강도 배율. 0이면 모든 연출(히트스톱·파티클·흔들림·스쿼시 등) 꺼짐.
-  JUICE: 1,
+  JUICE: 1.5,
 
   // 보드 (논리 px)
   COLS: 5,
@@ -19,7 +19,7 @@ export const CONFIG = {
   HINT_DELAY_MS: 2000,
 
   // 평소 딴짓(눈 굴리기·곁눈질·깜빡임·깡충) 빈도 배율. 0이면 가만히 있음.
-  IDLE_ACTIVITY: 1,
+  IDLE_ACTIVITY: 1.8,
   IDLE_MIN_MS: 600, // 타일마다 딴짓 간격 (무작위, IDLE_ACTIVITY로 나눔)
   IDLE_MAX_MS: 2200,
 
