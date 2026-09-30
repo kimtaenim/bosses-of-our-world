@@ -36,7 +36,7 @@ export const CONFIG = {
     chain: 'assets/sounds/chain.mp3', // 연쇄 단계마다 반음씩 피치 상승
   },
 
-  // characters.json의 colorAlt를 쓸지 (시진핑 노랑 #FFD700 테스트). URL에 ?alt=1 을 붙여도 켜짐.
+  // characters.json 인물에 colorAlt가 있으면 그 색을 쓸지 (색 비교 테스트용). URL에 ?alt=1 을 붙여도 켜짐.
   USE_ALT_COLORS: false,
 
   // 인물 목록과 판별 활성 인물(levels.order 앞에서부터 levels.counts[판-1]명, 마지막 값 유지)

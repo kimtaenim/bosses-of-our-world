@@ -19,7 +19,7 @@ npx http-server -c-1 .     # 또는 python3 -m http.server
 |---|---|
 | `?level=3` | 3판부터 시작 |
 | `?juice=0.5` | 연출 강도 (0이면 전부 꺼짐) |
-| `?alt=1` | `colorAlt` 사용 (시진핑 노랑 `#FFD700` 테스트) |
+| `?alt=1` | 인물에 `colorAlt`가 있으면 그 색으로 (색 비교 테스트용) |
 
 ## GitHub Pages 배포
 
