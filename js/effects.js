@@ -26,16 +26,16 @@ export const EFFECTS = {
     },
   },
 
-  // 세로 한 열 전체: 위에서 아래로 25ms 시차
+  // 가로 한 행 전체: 자기 위치에서 양쪽 끝으로 25ms 시차
   business: {
-    area(r, c, rows) {
+    area(r, c, rows, cols) {
       const out = [];
-      for (let rr = 0; rr < rows; rr++) out.push({ r: rr, c, delay: rr * 25 });
+      for (let cc = 0; cc < cols; cc++) out.push({ r, c: cc, delay: Math.abs(cc - c) * 25 });
       return out;
     },
-    play(game, r, c, rows) {
-      const sweep = rows * 25;
-      game.fx.beam(game.cx(c), 0, game.BH, game.T * 0.95, sweep / 0.7);
+    play(game, r, c, rows, cols) {
+      const sweep = Math.max(c, cols - 1 - c) * 25 + 25;
+      game.fx.beam(game.cy(r), game.cx(c), 0, game.BW, game.T * 0.95, sweep / 0.7);
     },
   },
 };

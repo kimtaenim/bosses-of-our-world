@@ -85,10 +85,10 @@ export class FX {
     });
   }
 
-  // 세로 빛줄기 (열 제거)
-  beam(x, top, bottom, width, dur) {
+  // 가로 빛줄기 (행 제거): x0에서 양쪽 끝(left, right)으로 같은 속도로 뻗어 나감
+  beam(y, x0, left, right, height, dur) {
     if (this.juice <= 0) return;
-    this.beams.push({ x, top, bottom, width, dur: dur / 1000, t: 0 });
+    this.beams.push({ y, x0, left, right, height, dur: dur / 1000, t: 0 });
   }
 
   shake(px) {
@@ -133,20 +133,26 @@ export class FX {
   draw(ctx) {
     for (const b of this.beams) {
       const t = b.t / b.dur;
-      const sweep = Math.min(t / 0.7, 1);                 // 위→아래로 훑음
-      const headY = b.top + (b.bottom - b.top) * sweep;
+      const reach = Math.max(b.x0 - b.left, b.right - b.x0) * Math.min(t / 0.7, 1);
       const fade = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
-      const g = ctx.createLinearGradient(0, b.top, 0, headY);
-      g.addColorStop(0, `rgba(255,255,255,${0.15 * fade})`);
-      g.addColorStop(1, `rgba(255,255,255,${0.9 * fade})`);
-      ctx.fillStyle = g;
-      ctx.fillRect(b.x - b.width / 2, b.top, b.width, headY - b.top);
-      ctx.fillStyle = `rgba(255,255,220,${fade})`;
-      ctx.fillRect(b.x - b.width * 0.18, b.top, b.width * 0.36, headY - b.top);
-      ctx.beginPath();
-      ctx.arc(b.x, headY, b.width * 0.55, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${0.8 * fade})`;
-      ctx.fill();
+      const h = b.height;
+      for (const dir of [-1, 1]) {
+        const edge = dir < 0 ? b.left : b.right;
+        const headX = b.x0 + dir * Math.min(reach, Math.abs(edge - b.x0));
+        if (Math.abs(headX - b.x0) < 0.5) continue;
+        const x1 = Math.min(b.x0, headX), w = Math.abs(headX - b.x0);
+        const g = ctx.createLinearGradient(b.x0, 0, headX, 0);
+        g.addColorStop(0, `rgba(255,255,255,${0.15 * fade})`);
+        g.addColorStop(1, `rgba(255,255,255,${0.9 * fade})`);
+        ctx.fillStyle = g;
+        ctx.fillRect(x1, b.y - h / 2, w, h);
+        ctx.fillStyle = `rgba(255,255,220,${fade})`;
+        ctx.fillRect(x1, b.y - h * 0.18, w, h * 0.36);
+        ctx.beginPath();
+        ctx.arc(headX, b.y, h * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${0.8 * fade})`;
+        ctx.fill();
+      }
     }
 
     for (const p of this.particles) {
