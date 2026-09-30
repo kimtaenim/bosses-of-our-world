@@ -2,6 +2,8 @@ import { Board } from './board.js';
 import { Tweener, ease, overshoot } from './tween.js';
 import { FX } from './fx.js';
 import { Sprites } from './sprites.js';
+import { targetScore } from '../config.js';
+import { loadProgress, saveProgress } from './storage.js';
 
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
@@ -29,16 +31,23 @@ export class Game {
     this.busy = false;
     this.selected = null;
 
+    this.level = 1;
     this.score = 0;
+    this.shownScore = 0;
+    this.lastInput = 0;
+    this.hint = null;      // { a, b, t0 }
     this.lastTs = 0;
+    this.best = loadProgress().best;
   }
 
   async init() {
     await this.sprites.load();
     this.resize();
     window.addEventListener('resize', () => this.resize());
-    this.startLevel();
     requestAnimationFrame((ts) => this.loop(ts));
+    this.busy = true;
+    await this.startLevel(1);
+    this.busy = false;
   }
 
   // ---------- 레이아웃 ----------
@@ -78,24 +87,45 @@ export class Game {
     return ids.map((id) => this.chars.findIndex((ch) => ch.id === id));
   }
 
-  startLevel() {
+  // 새 보드를 만들고 위에서 쏟아져 내려오게 한다
+  async startLevel(level) {
+    this.level = level;
     this.score = 0;
+    this.shownScore = 0;
+    this.best = Math.max(this.best, level);
+    saveProgress(level, this.best);
     this.board = new Board(this.cfg.COLS, this.cfg.ROWS, this.levelTypes());
     this.board.fillInitial();
     this.updateHud();
+
+    const rows = this.cfg.ROWS;
+    const falls = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < this.cfg.COLS; c++) {
+        falls.push({ tile: this.board.get(r, c), c, fromY: r - rows - 1, toR: r });
+      }
+    }
+    await this.animateFalls(falls, (f) => (rows - 1 - f.toR) * 35 + f.c * 12 + Math.random() * 30);
+    this.lastInput = this.tw.time;
   }
+
+  target() { return targetScore(this.level); }
 
   // ---------- 입력 ----------
 
   canInput() { return !this.busy; }
 
-  onUserInput() { this.lastInput = this.tw.time; }
+  onUserInput() {
+    this.lastInput = this.tw.time;
+    this.clearHint();
+  }
 
   async requestSwap(a, b) {
     if (this.busy) return;
     if (Math.abs(a.r - b.r) + Math.abs(a.c - b.c) !== 1) return;
     this.busy = true;
     this.selected = null;
+    this.clearHint();
     const board = this.board;
     const ta = board.get(a.r, a.c), tb = board.get(b.r, b.c);
 
@@ -104,11 +134,16 @@ export class Game {
     if (board.findMatches().groups.length === 0) {
       board.swap(a, b);
       await this.animateSwap(ta, b, a, tb);
-      this.busy = false;
+      this.endTurn();
       return;
     }
     await this.resolve();
+    this.endTurn();
+  }
+
+  endTurn() {
     this.busy = false;
+    this.lastInput = this.tw.time;
   }
 
   // ta: from → to, tb: to → from
@@ -131,8 +166,98 @@ export class Game {
       if (m.groups.length === 0) break;
       cascade++;
       await this.resolveStep(m, cascade);
+      if (this.score >= this.target()) {
+        await this.levelClear();
+        return;
+      }
       await this.animateFalls(this.board.collapse());
     }
+    // 가능한 수가 없으면 알림 없이 셔플
+    if (!this.board.findMove()) await this.shuffleBoard();
+  }
+
+  async shuffleBoard() {
+    this.board.shuffle();
+    const moves = [];
+    for (let r = 0; r < this.cfg.ROWS; r++) {
+      for (let c = 0; c < this.cfg.COLS; c++) {
+        const t = this.board.get(r, c);
+        moves.push({ t, x0: t.x, y0: t.y, x1: c, y1: r });
+      }
+    }
+    await this.tw.tween(380, (p) => {
+      for (const m of moves) {
+        m.t.x = m.x0 + (m.x1 - m.x0) * p;
+        m.t.y = m.y0 + (m.y1 - m.y0) * p;
+      }
+    }, ease.inOutQuad);
+  }
+
+  // 판 클리어: 보드 전체가 아래에서 위로 순차 터지고, 다음 판 보드가 쏟아져 내려옴
+  async levelClear() {
+    this.selected = null;
+    this.clearHint();
+    this.vibrate([30, 50, 30]);
+    this.showBanner(`판 ${this.level} 클리어!`);
+
+    const board = this.board;
+    const rows = this.cfg.ROWS, cols = this.cfg.COLS;
+    let last = 0;
+    for (let r = rows - 1; r >= 0; r--) {
+      for (let c = 0; c < cols; c++) {
+        const t = board.get(r, c);
+        if (!t) continue;
+        board.cells[board.idx(r, c)] = null;
+        this.dying.push(t);
+        const delay = (rows - 1 - r) * 55 + c * 10;
+        last = Math.max(last, delay);
+        this.tw.after(delay, () => {
+          this.popTile(t, 3, 1.6);
+          if (c === 0) this.fx.shake(3 + (rows - 1 - r));
+        });
+      }
+    }
+    await this.tw.wait(last + 120 + 450);
+    this.dying = [];
+    await this.startLevel(this.level + 1);
+  }
+
+  showBanner(text) {
+    const el = this.hud.banner;
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('show');
+    void el.offsetWidth; // 애니메이션 재시작
+    el.classList.add('show');
+  }
+
+  // ---------- 힌트 ----------
+
+  clearHint() {
+    if (!this.hint) return;
+    for (const p of [this.hint.a, this.hint.b]) {
+      const t = this.board && this.board.get(p.r, p.c);
+      if (t) t.hx = t.hy = 0;
+    }
+    this.hint = null;
+  }
+
+  updateHint() {
+    if (this.busy || !this.board) return;
+    if (!this.hint) {
+      if (this.tw.time - this.lastInput < this.cfg.HINT_DELAY_MS) return;
+      const mv = this.board.findMove();
+      if (!mv) return;
+      this.hint = { a: mv[0], b: mv[1], t0: this.tw.time };
+    }
+    // 두 타일이 서로를 향해 살짝 흔들림 (0.5초 흔들고 0.8초 쉼)
+    const { a, b, t0 } = this.hint;
+    const phase = (this.tw.time - t0) % 1300;
+    const k = phase < 500 ? Math.sin((phase / 500) * Math.PI * 4) * 3.5 * (1 - phase / 500) : 0;
+    const dx = b.c - a.c, dy = b.r - a.r;
+    const ta = this.board.get(a.r, a.c), tb = this.board.get(b.r, b.c);
+    if (ta) { ta.hx = dx * k; ta.hy = dy * k; }
+    if (tb) { tb.hx = -dx * k; tb.hy = -dy * k; }
   }
 
   async resolveStep(m, cascade) {
@@ -177,10 +302,10 @@ export class Game {
   }
 
   // 터짐: 120ms 동안 1.4배로 커지며 페이드아웃 + 파편 + 흰 링
-  popTile(t, particleMul = 1) {
+  popTile(t, particleMul = 1, speed = 1) {
     const J = this.J;
     const x = this.cx(t.x), y = this.cy(t.y);
-    this.fx.burst(x, y, this.chars[t.type].color, randInt(8, 12) * particleMul);
+    this.fx.burst(x, y, this.chars[t.type].color, randInt(8, 12) * particleMul, speed);
     this.fx.ring(x, y, this.T * 0.25, this.T, 150);
     if (J <= 0) { t.alpha = 0; return Promise.resolve(); }
     const s0 = t.scale, s1 = 1 + 0.4 * J;
@@ -225,7 +350,25 @@ export class Game {
   // ---------- HUD ----------
 
   updateHud() {
-    this.hud.score.textContent = this.score.toLocaleString();
+    const target = this.target();
+    this.hud.level.textContent = this.level;
+    this.hud.target.textContent = target.toLocaleString();
+    this.hud.best.textContent = this.best;
+    this.hud.bar.style.width = `${Math.min(100, (this.score / target) * 100)}%`;
+    this.renderScore();
+  }
+
+  renderScore() {
+    this.hud.score.textContent = Math.round(this.shownScore).toLocaleString();
+  }
+
+  // 표시 점수를 실제 점수로 빠르게 따라가게
+  updateScoreDisplay(dt) {
+    if (this.shownScore === this.score) return;
+    const diff = this.score - this.shownScore;
+    const step = Math.max(1, Math.abs(diff) * (1 - Math.exp(-dt / 70)));
+    this.shownScore = Math.abs(diff) <= step ? this.score : this.shownScore + Math.sign(diff) * step;
+    this.renderScore();
   }
 
   // ---------- 루프·렌더 ----------
@@ -235,6 +378,8 @@ export class Game {
     this.lastTs = ts;
     this.tw.update(dt);
     this.fx.update(dt);
+    this.updateHint();
+    this.updateScoreDisplay(dt);
     this.render(ts);
     requestAnimationFrame((t) => this.loop(t));
   }
