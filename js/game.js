@@ -10,10 +10,11 @@ import { Sound } from './audio.js';
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
 export class Game {
-  constructor(canvas, characters, config, hud) {
+  constructor(canvas, characters, levels, config, hud) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.chars = characters;
+    this.levels = levels;
     this.cfg = config;
     this.hud = hud;
 
@@ -43,13 +44,21 @@ export class Game {
     this.best = loadProgress().best;
   }
 
-  async init() {
+  async init(firstLevel = 1) {
     await this.sprites.load();
+    // prefers-reduced-motion: 흔들림·파티클 자동 비활성
+    const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq) {
+      this.fx.reduced = mq.matches;
+      const onChange = (e) => { this.fx.reduced = e.matches; };
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    }
     this.resize();
     window.addEventListener('resize', () => this.resize());
     requestAnimationFrame((ts) => this.loop(ts));
     this.busy = true;
-    await this.startLevel(1);
+    await this.startLevel(firstLevel);
     this.busy = false;
   }
 
@@ -85,9 +94,15 @@ export class Game {
 
   // ---------- 판 ----------
 
-  levelTypes() {
-    const ids = ['trump', 'kim', 'musk', 'bezos'];
-    return ids.map((id) => this.chars.findIndex((ch) => ch.id === id));
+  // characters.json levels: order 앞에서부터 counts[판-1]명 (counts 끝 이후는 마지막 값 유지)
+  levelTypes(level = this.level) {
+    const order = (this.levels && this.levels.order) || this.chars.map((ch) => ch.id);
+    const counts = (this.levels && this.levels.counts) || [order.length];
+    const n = counts[Math.min(level, counts.length) - 1];
+    const types = order.slice(0, n)
+      .map((id) => this.chars.findIndex((ch) => ch.id === id))
+      .filter((i) => i >= 0);
+    return types.length >= 3 ? types : this.chars.map((_, i) => i);
   }
 
   // 새 보드를 만들고 위에서 쏟아져 내려오게 한다
@@ -97,7 +112,7 @@ export class Game {
     this.shownScore = 0;
     this.best = Math.max(this.best, level);
     saveProgress(level, this.best);
-    this.board = new Board(this.cfg.COLS, this.cfg.ROWS, this.levelTypes());
+    this.board = new Board(this.cfg.COLS, this.cfg.ROWS, this.levelTypes(level));
     this.board.fillInitial();
     this.updateHud();
 

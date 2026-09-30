@@ -6,6 +6,17 @@ async function main() {
   const res = await fetch(CONFIG.CHARACTERS_URL);
   const data = await res.json();
 
+  // URL 파라미터로 폰에서 바로 조절: ?alt=1  ?juice=0.5  ?level=3
+  const params = new URLSearchParams(location.search);
+  const config = { ...CONFIG };
+  if (params.has('juice')) config.JUICE = Math.max(0, Number(params.get('juice')) || 0);
+  const useAlt = config.USE_ALT_COLORS || params.get('alt') === '1';
+  const characters = data.characters.map((ch) => ({
+    ...ch,
+    color: useAlt && ch.colorAlt ? ch.colorAlt : ch.color,
+  }));
+  const startLevel = Math.max(1, parseInt(params.get('level'), 10) || 1);
+
   const hud = {
     level: document.getElementById('level'),
     score: document.getElementById('score'),
@@ -15,9 +26,9 @@ async function main() {
     banner: document.getElementById('banner'),
   };
   const canvas = document.getElementById('game');
-  const game = new Game(canvas, data.characters, CONFIG, hud);
+  const game = new Game(canvas, characters, data.levels, config, hud);
   attachInput(canvas, game);
-  await game.init();
+  await game.init(startLevel);
   window.__game = game; // 디버그용
 }
 

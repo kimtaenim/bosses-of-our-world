@@ -7,5 +7,9 @@
     { "id": "musk",  "name": "머스크",   "group": "business",   "color": "#2A2A2A", "initial": "M", "face": "assets/faces/musk.png",  "special": "assets/special/musk.png",  "specialLabel": "자동차" },
     { "id": "bezos", "name": "베조스",   "group": "business",   "color": "#FF9900", "initial": "B", "face": "assets/faces/bezos.png", "special": "assets/special/bezos.png", "specialLabel": "미소 화살표" },
     { "id": "zuck",  "name": "저커버그", "group": "business",   "color": "#1877F2", "initial": "Z", "face": "assets/faces/zuck.png",  "special": "assets/special/zuck.png",  "specialLabel": "SNS" }
-  ]
+  ],
+  "levels": {
+    "order": ["trump", "kim", "musk", "bezos", "zuck", "putin", "xi"],
+    "counts": [4, 5, 6, 7]
+  }
 }
