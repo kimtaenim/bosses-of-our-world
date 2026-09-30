@@ -33,3 +33,9 @@ async function main() {
 }
 
 main();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => { /* 오프라인 지원만 빠짐 */ });
+  });
+}
