@@ -332,8 +332,8 @@ export class Sprites {
     return cv;
   }
 
-  // 특수 타일: 국기·아이콘 + 금색 테두리 (인물은 국기·배경색으로 구분).
-  // 배경은 assets/special/<id>.png 가 있으면 그 그림, 없으면 emblems.js의 코드 그림, 그것도 없으면 인물 색.
+  // 특수 타일: 인물 배경색 + (정치인) 작은 동그라미 국기 / (기업인) 이름 글자 + 금색 테두리.
+  // assets/special/<id>.png 가 있으면 배경색 대신 그 그림을 깐다.
   renderSpecial(ch, i) {
     const T = this.tile;
     const [cv, ctx] = this.canvas();
@@ -341,11 +341,69 @@ export class Sprites {
     this.tilePath(ctx);
     ctx.clip();
     const img = this.specialImgs[i];
-    const emblem = EMBLEMS[ch.emblem];
-    if (img) ctx.drawImage(img, 0, 0, T, T);
-    else if (emblem) emblem(ctx, T, ch.color);
-    else { ctx.fillStyle = ch.color; ctx.fillRect(0, 0, T, T); }
-
+    if (img) {
+      ctx.drawImage(img, 0, 0, T, T);
+    } else {
+      ctx.fillStyle = ch.color;
+      ctx.fillRect(0, 0, T, T);
+      const g = ctx.createRadialGradient(T * 0.5, T * 0.35, T * 0.05, T * 0.5, T * 0.5, T * 0.75);
+      g.addColorStop(0, 'rgba(255,255,255,0.4)');
+      g.addColorStop(1, 'rgba(0,0,0,0.12)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, T, T);
+    }
+    const flag = EMBLEMS[ch.emblem];
+    if (!img && flag && ch.group === 'politician') {
+      // 동그라미 국기 (흰 테두리 + 그림자)
+      const R = T * 0.3, cx = T / 2, cy = T / 2;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = T * 0.06;
+      ctx.shadowOffsetY = T * 0.02;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R + T * 0.035, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.translate(cx - R, cy - R);
+      ctx.scale((2 * R) / T, (2 * R) / T);
+      flag(ctx, T, ch.color);
+      ctx.restore();
+    } else if (!img) {
+      // 이름 글자 (길면 두 줄/작게)
+      const label = ch.specialLabel || ch.initial;
+      const n = parseInt(ch.color.slice(1), 16);
+      const lum = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+      const ink = lum > 150 ? '#1d2747' : '#ffffff';
+      ctx.fillStyle = ink;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = ink === '#ffffff' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.5)';
+      ctx.shadowBlur = T * 0.04;
+      let fs = T * 0.34;
+      ctx.font = `900 ${fs}px ${FONT}`;
+      while (fs > T * 0.14 && ctx.measureText(label).width > T * 0.8) {
+        fs -= 1;
+        ctx.font = `900 ${fs}px ${FONT}`;
+      }
+      if (fs < T * 0.24 && label.length >= 4) {
+        const half = Math.ceil(label.length / 2);
+        fs = T * 0.3;
+        ctx.font = `900 ${fs}px ${FONT}`;
+        while (fs > T * 0.14 && ctx.measureText(label.slice(0, half)).width > T * 0.8) {
+          fs -= 1;
+          ctx.font = `900 ${fs}px ${FONT}`;
+        }
+        ctx.fillText(label.slice(0, half), T / 2, T * 0.36);
+        ctx.fillText(label.slice(half), T / 2, T * 0.66);
+      } else {
+        ctx.fillText(label, T / 2, T * 0.52);
+      }
+    }
     ctx.restore();
 
     // 금색 이중 테두리

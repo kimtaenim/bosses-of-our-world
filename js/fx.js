@@ -14,6 +14,7 @@ export class FX {
     this.rings = [];
     this.texts = [];
     this.beams = [];
+    this.rockets = [];
     this.flashA = 0;   // 화면 전체 흰 번쩍임
     this.shakeAmp = 0;
     this.shakeX = 0;
@@ -114,6 +115,18 @@ export class FX {
     this.beams.push({ y, x0, left, right, height, dur: dur / 1000, t: 0 });
   }
 
+  // 세로 빛줄기 (열 제거): y0에서 위아래로 뻗어 나감
+  vbeam(x, y0, top, bottom, width, dur) {
+    if (this.juice <= 0) return;
+    this.beams.push({ vertical: true, vx: x, y: 0, x0: y0, left: top, right: bottom, height: width, dur: dur / 1000, t: 0 });
+  }
+
+  // 로켓: (x, y)에서 위로 가속하며 날아가고 불꽃을 뿜음
+  rocket(x, y) {
+    if (this.juice <= 0) return;
+    this.rockets.push({ x, y, vy: -200, t: 0 });
+  }
+
   shake(px) {
     if (this.reduced || this.juice <= 0) return;
     this.shakeAmp = Math.max(this.shakeAmp, Math.min(px * this.juice, 10 * Math.max(1, this.juice)));
@@ -140,6 +153,21 @@ export class FX {
     this.rings = this.rings.filter((r) => r.t < r.dur);
     for (const t of this.texts) t.t += s;
     this.texts = this.texts.filter((t) => t.t < t.dur);
+    for (const rk of this.rockets) {
+      rk.t += s;
+      rk.vy -= 2600 * s;
+      rk.y += rk.vy * s;
+      if (this.particlesOn) {
+        for (let k = 0; k < 3 && this.particles.length < MAX_PARTICLES; k++) {
+          this.particles.push({
+            x: rk.x + rand(-5, 5), y: rk.y + 22, vx: rand(-60, 60), vy: rand(80, 200),
+            g: 0, size: rand(4, 8), color: Math.random() < 0.5 ? '#FFB02E' : '#FFF1A8',
+            rot: 0, vr: 0, life: 0, maxLife: rand(0.2, 0.35), kind: 'debris',
+          });
+        }
+      }
+    }
+    this.rockets = this.rockets.filter((rk) => rk.y > -400);
     for (const b of this.beams) b.t += s;
     this.beams = this.beams.filter((b) => b.t < b.dur);
 
@@ -157,6 +185,56 @@ export class FX {
 
   draw(ctx) {
     for (const b of this.beams) {
+      if (b.vertical) {
+        ctx.save();
+        ctx.translate(b.vx, b.x0);
+        ctx.rotate(Math.PI / 2);
+        this.drawBeam(ctx, { ...b, x0: 0, y: 0, left: b.left - b.x0, right: b.right - b.x0 });
+        ctx.restore();
+      } else {
+        this.drawBeam(ctx, b);
+      }
+    }
+
+    for (const rk of this.rockets) this.drawRocket(ctx, rk);
+
+    this.drawParticles(ctx);
+    this.drawRest(ctx);
+  }
+
+  drawRocket(ctx, rk) {
+    ctx.save();
+    ctx.translate(rk.x, rk.y);
+    const W = 14, L = 40;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#1d2747';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-W / 2, L * 0.45);
+    ctx.lineTo(-W / 2, -L * 0.1);
+    ctx.quadraticCurveTo(-W / 2, -L * 0.5, 0, -L * 0.55);
+    ctx.quadraticCurveTo(W / 2, -L * 0.5, W / 2, -L * 0.1);
+    ctx.lineTo(W / 2, L * 0.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#E8364A';
+    for (const sgn of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(sgn * W / 2, L * 0.1);
+      ctx.lineTo(sgn * W * 1.1, L * 0.5);
+      ctx.lineTo(sgn * W / 2, L * 0.45);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = '#7CCBF5';
+    ctx.beginPath();
+    ctx.arc(0, -L * 0.15, W * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  drawBeam(ctx, b) {
       const t = b.t / b.dur;
       const reach = Math.max(b.x0 - b.left, b.right - b.x0) * Math.min(t / 0.7, 1);
       const fade = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
@@ -178,8 +256,9 @@ export class FX {
         ctx.fillStyle = `rgba(255,255,255,${0.8 * fade})`;
         ctx.fill();
       }
-    }
+  }
 
+  drawParticles(ctx) {
     for (const p of this.particles) {
       const t = p.life / p.maxLife;
       ctx.globalAlpha = p.kind === 'suck' ? 1 : t > 0.6 ? 1 - (t - 0.6) / 0.4 : 1;
@@ -192,7 +271,9 @@ export class FX {
       ctx.restore();
     }
     ctx.globalAlpha = 1;
+  }
 
+  drawRest(ctx) {
     for (const r of this.rings) {
       const t = r.t / r.dur;
       const e = 1 - (1 - t) * (1 - t);

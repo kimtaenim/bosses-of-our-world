@@ -8,6 +8,7 @@ import { EFFECTS } from './effects.js';
 import { Sound } from './audio.js';
 import { Faces, PRIO } from './faces.js';
 
+const CHAIN_DELAY = 110; // 연쇄 발동 전 부르르 떠는 시간(ms)
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
 export class Game {
@@ -430,6 +431,7 @@ export class Game {
     const setMin = (i, t) => { if (!popAt.has(i) || popAt.get(i) > t) popAt.set(i, t); };
     const triggers = [];
     const fired = new Set();
+    const chained = []; // 다른 특수 효과에 맞아 연쇄 발동하는 특수 타일
     const plays = [];
     for (const i of m.matched) {
       if (board.cells[i].special) triggers.push({ i, t: HIT });
@@ -441,7 +443,8 @@ export class Game {
       if (fired.has(i)) continue;
       fired.add(i);
       const tile = board.cells[i];
-      const effect = EFFECTS[this.chars[tile.type].group];
+      const ch = this.chars[tile.type];
+      const effect = EFFECTS[ch.effect || ch.group];
       popAt.set(i, t);
       if (!effect) continue;
       const [r, c] = board.rc(i);
@@ -452,7 +455,7 @@ export class Game {
         if (j === i) { popAt.set(i, tt); continue; }
         const other = board.cells[j];
         if (!other) continue;
-        if (other.special) { if (!fired.has(j)) triggers.push({ i: j, t: tt }); }
+        if (other.special) { if (!fired.has(j)) { triggers.push({ i: j, t: tt + CHAIN_DELAY }); chained.push({ tile: other, t: tt }); } }
         else setMin(j, tt);
       }
     }
@@ -496,6 +499,14 @@ export class Game {
       this.tw.after(d, () => {
         this.popTile(e.tile, e.tile.special ? 2 : 1);
         this.reactAround(pr, pc);
+      });
+    }
+    for (const ch of chained) {
+      this.tw.after(Math.max(0, ch.t - HIT), () => {
+        this.tw.tween(CHAIN_DELAY, (p) => {
+          ch.tile.jx = (Math.random() * 2 - 1) * 4 * Math.min(this.J, 1.5);
+          ch.tile.scale = 1 + 0.25 * p * Math.min(this.J, 1.5);
+        }).then(() => { ch.tile.jx = 0; });
       });
     }
     for (const pl of plays) {
