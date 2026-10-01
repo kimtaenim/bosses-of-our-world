@@ -34,29 +34,31 @@ async function main() {
   mute.addEventListener('click', () => { game.sound.setMuted(!game.sound.muted); renderMute(); });
   // 부가 기능(광고 교대·소리)이 실패해도 게임은 반드시 시작한다
   try { rotateTop(config); } catch (err) { console.error(err); }
-  try {
-    // 시작할 때 소리 켤지 묻기 (?sound=1 / ?sound=0 이면 묻지 않음). 버튼 탭이 곧 오디오 잠금 해제.
-    const on = await askSound(params.get('sound'), !game.sound.muted);
+  // 게임은 묻는 창과 상관없이 바로 시작한다 (창이 안 보이거나 깨져도 멈추지 않게).
+  // 소리 켤지 묻는 창은 게임 위에 떠 있고, 고르면 그때 소리를 켠다. (?sound=1 / ?sound=0 이면 묻지 않음)
+  askSound(params.get('sound'), !game.sound.muted).then((on) => {
     game.sound.setMuted(!on);
     renderMute();
-    await game.sound.ready();
-  } catch (err) { console.error(err); }
-  await game.init(startLevel);
+    if (on) game.sound.ready().then(() => game.sound.play('land')).catch(() => {});
+  }).catch((err) => console.error(err));
   window.__game = game; // 디버그용
+  await game.init(startLevel);
 }
 
 function askSound(preset, lastOn) {
   const box = document.getElementById('sound-ask');
   if (!box) return Promise.resolve(lastOn); // 화면 파일이 예전 버전이면 묻지 않고 지난 설정대로
-  if (preset === '0' || preset === '1') { box.hidden = true; return Promise.resolve(preset === '1'); }
+  const hide = () => { box.hidden = true; box.style.display = 'none'; };
+  if (preset === '0' || preset === '1') { hide(); return Promise.resolve(preset === '1'); }
   box.hidden = false;
+  box.style.display = 'flex';
   // 지난번 선택에 포커스
   box.querySelector(`[data-sound="${lastOn ? 'on' : 'off'}"]`).focus({ preventScroll: true });
   return new Promise((resolve) => {
     box.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-sound]');
       if (!b) return;
-      box.hidden = true;
+      hide();
       resolve(b.dataset.sound === 'on');
     });
   });
