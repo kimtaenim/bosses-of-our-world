@@ -12,7 +12,7 @@
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { special_anthem: 2600, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
+const MIN_GAP = { special_anthem: 3200, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
@@ -543,22 +543,23 @@ export class Sound {
         this.kazoo(392 * k, 0, 0.09, 0.5);
         this.kazoo(523 * k, 0.08, 0.16, 0.55);
         break;
-      case 'special_anthem': { // 성조기: 철퍽 뒤에 마림바로 "솔-미 | 도 미 솔 | 도~" (O say can you see)
+      case 'special_anthem': { // 성조기: 철퍽 뒤에 마림바로 "솔~미 | 도 미 솔 | 도~~" (O say can you see)
         this.splat(0.9);
-        // 철퍽이 끝난 뒤 시작해야 첫 "솔-미"가 묻히지 않는다. 3/4박자, 4분음표 0.4초.
-        const q = 0.4;
+        // 3/4박자 못갖춘마디, 4분음표 0.5초. 음마다 짧게 끊어 쳐서 박자가 또렷하게.
+        const q = 0.5;
         const notes = [
-          [784, 0.75 * q],  // 솔 (점8분) O -
-          [659, 0.25 * q],  // 미 (16분)  say
-          [523, q],         // 도         can
-          [659, q],         // 미         you
-          [784, q],         // 솔         see
-          [1047, 2 * q],    // 도~        by
+          // [주파수, 길이(박), 세기]
+          [784, 0.75, 0.26],  // 솔 (점8분)  O~
+          [659, 0.25, 0.22],  // 미 (16분)   say
+          [523, 1, 0.34],     // 도 (강박)   can
+          [659, 1, 0.26],     // 미          you
+          [784, 1, 0.28],     // 솔          see
+          [1047, 2, 0.34],    // 도~~ (강박) by
         ];
-        let t = 0.32;
-        for (const [f, d] of notes) {
-          this.marimba(f, t, 0.3, Math.max(0.25, d * 1.4));
-          this.marimba(f / 2, t, 0.1, Math.max(0.2, d)); // 한 옥타브 아래를 살짝 겹쳐 또렷하게
+        let t = 0.35; // 철퍽이 끝난 뒤
+        for (const [f, beats, v] of notes) {
+          const d = beats * q;
+          this.marimba(f, t, v, Math.min(0.9, d * 0.9 + 0.08));
           t += d;
         }
         break;
