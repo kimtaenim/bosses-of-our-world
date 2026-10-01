@@ -62,7 +62,8 @@ export class Game {
     this.best = loadProgress().best;
   }
 
-  async init(firstLevel = 1) {
+  // firstLevel을 주지 않으면 저장된 판·점수에서 이어한다
+  async init(firstLevel = null) {
     await this.sprites.load();
     // prefers-reduced-motion: 흔들림·파티클 자동 비활성
     const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -76,7 +77,12 @@ export class Game {
     window.addEventListener('resize', () => this.resize());
     requestAnimationFrame((ts) => this.loop(ts));
     this.busy = true;
-    await this.startLevel(firstLevel);
+    if (firstLevel) {
+      await this.startLevel(firstLevel);
+    } else {
+      const saved = loadProgress();
+      await this.startLevel(saved.reached, Math.min(saved.score, targetScore(saved.reached) - 1));
+    }
     this.busy = false;
   }
 
@@ -134,13 +140,14 @@ export class Game {
   }
 
   // 새 보드를 만들고 위에서 쏟아져 내려오게 한다
-  async startLevel(level) {
+  // score: 이어하기일 때 그 판에서 이미 모은 점수
+  async startLevel(level, score = 0) {
     this.level = level;
     this.spot = null;
-    this.score = 0;
-    this.shownScore = 0;
+    this.score = score;
+    this.shownScore = score;
     this.best = Math.max(this.best, level);
-    saveProgress(level, this.best);
+    saveProgress(level, this.best, score);
     this.board = new Board(this.cfg.COLS, this.cfg.ROWS, this.levelTypes(level));
     this.board.fillInitial();
     this.updateHud();
@@ -692,6 +699,7 @@ export class Game {
   addScore(count, cascade, cells = null) {
     const pts = Math.floor(count * 10 * Math.pow(1.5, cascade - 1));
     this.score += pts;
+    saveProgress(this.level, this.best, this.score); // 나갔다 와도 이어하기
     this.updateHud();
     if (cells && cells.length) {
       let sx = 0, sy = 0;

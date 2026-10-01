@@ -15,7 +15,8 @@ async function main() {
     ...ch,
     color: useAlt && ch.colorAlt ? ch.colorAlt : ch.color,
   }));
-  const startLevel = Math.max(1, parseInt(params.get('level'), 10) || 1);
+  // ?level=N 이면 그 판부터, 아니면 저장된 판·점수에서 이어하기
+  const startLevel = parseInt(params.get('level'), 10) > 0 ? parseInt(params.get('level'), 10) : null;
 
   const hud = {
     level: document.getElementById('level'),
