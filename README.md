@@ -27,7 +27,7 @@ npx http-server -c-1 .     # 또는 python3 -m http.server
 2. 저장소 Settings → Pages → Source: **Deploy from a branch**, Branch: `main` / `/ (root)`.
 3. `https://<계정>.github.io/bosses-of-our-world/` 접속. 모든 경로가 상대 경로라 하위 경로에서 그대로 동작한다.
 
-서비스 워커는 stale-while-revalidate라서 새로 배포한 내용은 **두 번째 실행부터** 보인다.
+서비스 워커는 네트워크 우선이라 새로 배포한 내용이 바로 보인다(오프라인일 때만 캐시).
 바로 반영하려면 `sw.js`의 `VERSION`을 올린다. JS 파일을 추가하면 `sw.js`의 `SHELL` 목록에도 넣는다.
 
 ## 설정 (코드 수정 없이)

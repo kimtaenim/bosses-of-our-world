@@ -32,18 +32,22 @@ async function main() {
   const renderMute = () => { mute.textContent = game.sound.muted ? '🔇' : '🔊'; };
   renderMute();
   mute.addEventListener('click', () => { game.sound.setMuted(!game.sound.muted); renderMute(); });
-  rotateTop(config);
-  // 시작할 때 소리 켤지 묻기 (?sound=1 / ?sound=0 이면 묻지 않음). 버튼 탭이 곧 오디오 잠금 해제.
-  const on = await askSound(params.get('sound'), !game.sound.muted);
-  game.sound.setMuted(!on);
-  renderMute();
-  await game.sound.ready();
+  // 부가 기능(광고 교대·소리)이 실패해도 게임은 반드시 시작한다
+  try { rotateTop(config); } catch (err) { console.error(err); }
+  try {
+    // 시작할 때 소리 켤지 묻기 (?sound=1 / ?sound=0 이면 묻지 않음). 버튼 탭이 곧 오디오 잠금 해제.
+    const on = await askSound(params.get('sound'), !game.sound.muted);
+    game.sound.setMuted(!on);
+    renderMute();
+    await game.sound.ready();
+  } catch (err) { console.error(err); }
   await game.init(startLevel);
   window.__game = game; // 디버그용
 }
 
 function askSound(preset, lastOn) {
   const box = document.getElementById('sound-ask');
+  if (!box) return Promise.resolve(lastOn); // 화면 파일이 예전 버전이면 묻지 않고 지난 설정대로
   if (preset === '0' || preset === '1') { box.hidden = true; return Promise.resolve(preset === '1'); }
   box.hidden = false;
   // 지난번 선택에 포커스
@@ -65,6 +69,7 @@ function rotateTop(config) {
   const title = document.getElementById('title');
   const ad = document.getElementById('ad');
   const text = document.getElementById('ad-text');
+  if (!title || !ad || !text) return;
   let step = 0;
   setInterval(() => {
     step++;

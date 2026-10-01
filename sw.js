@@ -1,6 +1,7 @@
-// 서비스 워커: 앱 셸 선캐시 + stale-while-revalidate.
-// 파일을 바꿔 배포하면 다음 실행부터 반영된다. 즉시 반영하려면 VERSION을 올린다.
-const VERSION = 'v53';
+// 서비스 워커: 앱 셸 선캐시 + 네트워크 우선 (오프라인이면 캐시).
+// 예전 파일과 새 파일이 섞여 게임이 멈추는 일이 없도록 항상 최신 파일을 먼저 받는다.
+// 파일을 바꿔 배포하면 VERSION을 올린다.
+const VERSION = 'v54';
 const CACHE = `bosses-${VERSION}`;
 const SHELL = [
   './',
@@ -29,7 +30,12 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // HTTP 캐시를 거치지 않고 새로 받아서 저장 (옛 파일이 섞여 들어가지 않게)
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -44,21 +50,19 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   const isNav = req.mode === 'navigate';
+  const key = isNav ? 'index.html' : req;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(isNav ? 'index.html' : req, { ignoreSearch: isNav });
-      const network = fetch(req)
-        .then((res) => {
-          // 200만 캐시 (없는 얼굴 이미지 404는 캐시하지 않아 나중에 추가해도 바로 잡힘)
-          if (res.ok) cache.put(isNav ? 'index.html' : req, res.clone());
-          return res;
-        })
-        .catch(() => cached || Response.error());
-      if (cached) {
-        e.waitUntil(network.catch(() => {}));
-        return cached;
+      try {
+        // 네트워크 우선 (HTTP 캐시도 확인만 하고 바뀌었으면 새로)
+        const res = await fetch(req, { cache: 'no-cache' });
+        // 200만 캐시 (없는 얼굴 이미지·소리 404는 캐시하지 않음)
+        if (res.ok) cache.put(key, res.clone());
+        return res;
+      } catch (_) {
+        const cached = await cache.match(key, { ignoreSearch: isNav });
+        return cached || Response.error();
       }
-      return network;
     }),
   );
 });
