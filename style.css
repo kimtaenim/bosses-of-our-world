@@ -34,8 +34,48 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-#title {
+/* 제목 자리: 제목과 광고 배너가 번갈아 나옴 (config.js TOP_ROTATE_MS) */
+#top {
   flex: none;
+  position: relative;
+}
+
+.top-slot {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  pointer-events: none;
+}
+.top-slot.show {
+  opacity: 1;
+  transform: none;
+}
+
+#ad {
+  position: absolute;
+  inset: 8px 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px dashed rgba(255, 229, 138, 0.55);
+  border-radius: 10px;
+  background: rgba(255, 229, 138, 0.07);
+  color: #ffe58a;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+#ad .ad-chip {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #ffe58a;
+  color: #1c1f33;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+#title {
   display: flex;
   justify-content: center;
   align-items: baseline;
@@ -61,6 +101,35 @@ body {
 
 #title .main {
   font-size: clamp(22px, 7.4vw, 34px);
+}
+
+/* 달러 기호: 굵은 세리프 + 돈다발 초록 + 금 테두리, 살짝 크고 위로 */
+#title .usd {
+  align-self: center;
+  margin: 0 -3px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 900;
+  font-size: clamp(27px, 9vw, 42px);
+  line-height: 1;
+  background: linear-gradient(180deg, #d8ffb0 0%, #5fe05a 40%, #12902e 70%, #7cf06a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1.2px #ffd75a;
+  filter: drop-shadow(0 2px 0 #0b3d14) drop-shadow(0 0 6px rgba(120, 255, 120, 0.55));
+  transform: translateY(-1px) rotate(-6deg);
+  animation: usd-bling 2.4s ease-in-out infinite;
+}
+#title .usd + .usd {
+  transform: translateY(-1px) rotate(6deg);
+  animation-delay: 0.3s;
+}
+@keyframes usd-bling {
+  0%, 70%, 100% { filter: drop-shadow(0 2px 0 #0b3d14) drop-shadow(0 0 6px rgba(120, 255, 120, 0.55)); }
+  80% { filter: drop-shadow(0 2px 0 #0b3d14) drop-shadow(0 0 14px rgba(200, 255, 140, 0.95)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #title .usd { animation: none; }
 }
 
 #title .of {

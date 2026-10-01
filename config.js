@@ -44,6 +44,11 @@ export const CONFIG = {
 
   // 인물 목록과 판별 활성 인물(levels.order 앞에서부터 levels.counts[판-1]명, 마지막 값 유지)
   CHARACTERS_URL: 'characters.json',
+
+  // 제목 자리에 제목 ↔ 광고 배너를 번갈아 표시. 각 화면 유지 시간(ms), 광고 문구 목록.
+  // 순서: 제목 → 광고1 → 제목 → 광고2 → ...  (ADS를 비우면 제목만)
+  TOP_ROTATE_MS: 20000,
+  ADS: ['이곳에 광고 1', '이곳에 광고 2'],
 };
 
 // 판 번호(1부터) → 목표 점수

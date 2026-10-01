@@ -32,8 +32,26 @@ async function main() {
   const renderMute = () => { mute.textContent = game.sound.muted ? '🔇' : '🔊'; };
   renderMute();
   mute.addEventListener('click', () => { game.sound.setMuted(!game.sound.muted); renderMute(); });
+  rotateTop(config);
   await game.init(startLevel);
   window.__game = game; // 디버그용
+}
+
+// 제목 ↔ 광고 배너 교대: 제목 → 광고1 → 제목 → 광고2 ...
+function rotateTop(config) {
+  const ads = config.ADS || [];
+  if (!ads.length) return;
+  const title = document.getElementById('title');
+  const ad = document.getElementById('ad');
+  const text = document.getElementById('ad-text');
+  let step = 0;
+  setInterval(() => {
+    step++;
+    const showAd = step % 2 === 1;
+    if (showAd) text.textContent = ads[((step - 1) / 2) % ads.length];
+    title.classList.toggle('show', !showAd);
+    ad.classList.toggle('show', showAd);
+  }, Math.max(3000, config.TOP_ROTATE_MS || 20000));
 }
 
 main();
