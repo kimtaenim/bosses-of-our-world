@@ -448,7 +448,13 @@ export class Game {
       this.renderScore();
       this.updateHud();
     }
-    this.showBanner(`판 ${this.level} 클리어!`, bonus > 0 ? `⏱ 타임 보너스 +${bonus.toLocaleString()}` : '');
+    this.showBanner(`판 ${this.level} 클리어!`, bonus > 0 ? `⏱ 타임 보너스 +${bonus.toLocaleString()}` : '', bonus > 0);
+    // 보너스 숫자가 0부터 촤르르 올라감
+    const subEl = bonus > 0 && this.hud.banner && this.hud.banner.querySelector('.sub');
+    if (subEl) {
+      this.tw.tween(900, (p) => { subEl.textContent = `⏱ 타임 보너스 +${Math.round(bonus * p).toLocaleString()}`; }, ease.outQuad, 250);
+      for (let i = 0; i < 6; i++) this.tw.after(250 + i * 140, () => this.sound.play('land'));
+    }
 
     const board = this.board;
     const rows = this.cfg.ROWS, cols = this.cfg.COLS;
@@ -469,15 +475,18 @@ export class Game {
         });
       }
     }
-    await this.tw.wait(last + 120 + 450);
+    // 타임 보너스가 있으면 읽을 시간을 넉넉히
+    await this.tw.wait(Math.max(last + 120 + 450, bonus > 0 ? 2600 : 0));
     this.dying = [];
     await this.startLevel(this.level + 1);
   }
 
-  showBanner(text, sub = '') {
+  // long: 더 오래 떠 있는 배너 (타임 보너스)
+  showBanner(text, sub = '', long = false) {
     const el = this.hud.banner;
     if (!el) return;
     el.textContent = text;
+    el.classList.toggle('long', long);
     if (sub) {
       const s = document.createElement('div');
       s.className = 'sub';

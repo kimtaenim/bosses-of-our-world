@@ -229,10 +229,27 @@ body {
 }
 #timer.low { color: #ffb36b; }
 #banner .sub {
-  margin-top: 6px;
-  font-size: 22px;
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 18px;
+  border: 2px solid #ffd75a;
+  border-radius: 999px;
+  background: rgba(40, 24, 0, 0.75);
+  font-size: 30px;
   color: #ffe58a;
-  text-shadow: 0 2px 0 #7a4a00, 0 4px 12px rgba(0, 0, 0, 0.5);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 #7a4a00;
+  box-shadow: 0 0 22px rgba(255, 200, 60, 0.55);
+}
+#banner.long.show {
+  animation: banner-pop 3s ease-out forwards;
+}
+#banner.long .sub {
+  animation: bonus-pulse 0.6s ease-in-out 0.3s 4 alternate;
+}
+@keyframes bonus-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.12); }
 }
 
 #mute {
@@ -290,6 +307,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   #banner.show { animation: banner-fade 1.3s linear forwards; }
+  #banner.long.show { animation: banner-fade 3s linear forwards; }
+  #banner.long .sub { animation: none; }
   @keyframes banner-fade {
     0%, 100% { opacity: 0; transform: none; }
     15%, 80% { opacity: 1; transform: none; }
