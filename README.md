@@ -37,7 +37,7 @@ npx http-server -c-1 .     # 또는 python3 -m http.server
   - `TARGET_BASE` / `TARGET_STEP`: 판별 목표 점수. 1판 1000점, 판마다 100점씩 증가 (1000, 1100, 1200 ...).
   - `SPOTLIGHT_DELAY_MS`: 이 시간(10초) 동안 하나도 못 맞추면(헛스왑 포함) 맞출 줄을 금빛 테두리로, 옮길 방향을 화살표로 표시. 맞출 때까지 유지.
   - `TOP_TITLE_MS` / `TOP_AD_MS` / `ADS`: 제목 자리에 제목(6초) → 광고1(6초) → 제목 → 광고2 → 제목 → 광고1 … 번갈아 표시. `ADS`를 빈 배열로 두면 제목만.
-  - `TIME_BONUS_SEC` / `TIME_BONUS_PER_SEC`: 판을 60초 안에 깨면 남은 1초마다 10점을 전체 점수에 더한다. 판 옆 ⏱가 남은 초.
+  - `TIME_BONUS_SEC` / `TIME_BONUS_PER_SEC`: 판을 60초 안에 깨면 남은 1초마다 10점을 전체 점수에 더한다. 판 옆 "보너스 +590"이 지금 깨면 받는 보너스 (1초마다 줄어듦).
   - `HINT_DELAY_MS`, `FALL_GRAVITY`, `SOUND_ENABLED`, `SOUNDS`, `USE_ALT_COLORS`.
 - `characters.json`
   - `characters`: id, 표시명, 그룹, 배경색, 이니셜, 얼굴 이미지, 특수타일 이미지, 특수타일 플레이스홀더 글자.

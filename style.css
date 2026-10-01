@@ -221,13 +221,19 @@ body {
   cursor: pointer;
 }
 #timer {
-  margin-left: 4px;
-  font-size: 15px;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border: 1.5px solid rgba(255, 215, 90, 0.7);
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 800;
-  color: #9fe3ff;
+  letter-spacing: 0;
+  color: #ffe58a;
+  vertical-align: middle;
   font-variant-numeric: tabular-nums;
 }
-#timer.low { color: #ffb36b; }
+#timer:empty { display: none; }
+#timer.low { color: #ffb36b; border-color: rgba(255, 179, 107, 0.7); }
 #banner .sub {
   display: inline-block;
   margin-top: 12px;

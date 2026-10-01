@@ -190,7 +190,8 @@ export class Game {
     const left = this.bonusLeft();
     if (left !== this.shownLeft && this.hud.timer) {
       this.shownLeft = left;
-      this.hud.timer.textContent = left > 0 ? `⏱ ${left}` : '';
+      // 시간 제한이 아니라 '지금 깨면 받는 보너스 점수'로 보여준다
+      this.hud.timer.textContent = left > 0 ? `보너스 +${(left * this.cfg.TIME_BONUS_PER_SEC).toLocaleString()}` : '';
       this.hud.timer.classList.toggle('low', left > 0 && left <= 10);
     }
     const sec = Math.floor(this.elapsed() / 1000);
