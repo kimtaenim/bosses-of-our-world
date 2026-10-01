@@ -1,6 +1,6 @@
 // 서비스 워커: 앱 셸 선캐시 + stale-while-revalidate.
 // 파일을 바꿔 배포하면 다음 실행부터 반영된다. 즉시 반영하려면 VERSION을 올린다.
-const VERSION = 'v30';
+const VERSION = 'v31';
 const CACHE = `bosses-${VERSION}`;
 const SHELL = [
   './',
@@ -21,6 +21,7 @@ const SHELL = [
   'js/storage.js',
   'js/faces.js',
   'js/emblems.js',
+  'assets/fonts/rye-latin.woff2',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
