@@ -8,7 +8,7 @@
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { match: 45, special: 90, voice: 160, chain: 40, clear: 300 };
+const MIN_GAP = { match: 45, special: 90, bomb: 140, voice: 160, chain: 40, clear: 300 };
 
 export class Sound {
   constructor(cfg) {
@@ -24,10 +24,27 @@ export class Sound {
     this.bindUnlock();
   }
 
+  // 끄면 오디오를 재우고, 다시 켜면 (버튼 탭 안에서) 깨워서 바로 소리가 나게 한다
   setMuted(m) {
     this.muted = m;
     try { localStorage.setItem(MUTE_KEY, m ? '1' : '0'); } catch (_) { /* 무시 */ }
-    if (!m) this.unlock();
+    if (m) {
+      if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+    } else {
+      this.unlock();
+      this.poke();
+    }
+  }
+
+  // 무음 1샘플 재생: iOS는 사용자 탭 안에서 소리를 한 번 내야 오디오가 확실히 풀린다
+  poke() {
+    if (!this.ctx) return;
+    try {
+      const blank = this.ctx.createBufferSource();
+      blank.buffer = this.ctx.createBuffer(1, 1, 22050);
+      blank.connect(this.ctx.destination);
+      blank.start(0);
+    } catch (_) { /* 무시 */ }
   }
 
   // 모바일 오디오 잠금 해제: 화면 어디를 눌러도, 앱으로 돌아올 때도 다시 깨운다.
@@ -43,9 +60,10 @@ export class Sound {
   }
 
   resume() {
-    if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') {
-      this.ctx.resume().catch(() => {});
-    }
+    if (this.muted || !this.ctx) return Promise.resolve();
+    if (this.ctx.state === 'closed') { this.ctx = null; return Promise.resolve(); } // 다음 탭에서 새로 만듦
+    if (this.ctx.state === 'running') return Promise.resolve();
+    return this.ctx.resume().catch(() => {});
   }
 
   unlock() {
@@ -66,11 +84,7 @@ export class Sound {
     this.gain = this.ctx.createGain();
     this.gain.gain.value = this.volume;
     this.gain.connect(this.comp).connect(this.ctx.destination);
-    // iOS 첫 재생 잠금 해제용 무음 1샘플
-    const blank = this.ctx.createBufferSource();
-    blank.buffer = this.ctx.createBuffer(1, 1, 22050);
-    blank.connect(this.ctx.destination);
-    blank.start(0);
+    this.poke();
     this.resume();
     for (const [name, url] of Object.entries(this.files)) {
       if (!url) continue;
@@ -85,7 +99,16 @@ export class Sound {
   // voice: 터진 인물 { id, group } (합성음에서 인물별 한마디)
   play(name, semitone = 0, voice = null) {
     if (!this.enabled || this.muted || !this.ctx) return;
-    if (this.ctx.state !== 'running') { this.resume(); if (this.ctx.state !== 'running') return; }
+    // 오디오가 잠들어 있으면 깨운 뒤에 재생 (소리를 버리지 않음)
+    if (this.ctx.state !== 'running') {
+      if (this.waking) return;
+      this.waking = true;
+      this.resume().then(() => {
+        this.waking = false;
+        if (this.ctx && this.ctx.state === 'running') this.play(name, semitone, voice);
+      });
+      return;
+    }
     const now = performance.now();
     if (now - (this.last[name] || 0) < (MIN_GAP[name] || 0)) return;
     this.last[name] = now;
@@ -247,6 +270,51 @@ export class Sound {
     for (const x of [o, vib]) { x.start(t); x.stop(t + dur + 0.03); }
   }
 
+  // 방귀: 떨리는 저음 톱니파를 공명 로우패스로 + 진폭을 빠르게 덜덜 → "뿌우우웅~" 끝에 "뿡"
+  fart(size = 1, delay = 0) {
+    const ctx = this.ctx;
+    const t = this.t0 + delay;
+    const p = 0.8 + Math.random() * 0.45;
+    const dur = (0.55 + Math.random() * 0.25) * size;
+    const o = ctx.createOscillator();
+    const f = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    const am = ctx.createGain();
+    const flut = ctx.createOscillator();
+    const fg = ctx.createGain();
+    const wob = ctx.createOscillator();
+    const wg = ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(70 * p, t);
+    o.frequency.linearRampToValueAtTime(115 * p, t + 0.06);
+    o.frequency.linearRampToValueAtTime(92 * p, t + dur * 0.5);
+    o.frequency.linearRampToValueAtTime(60 * p, t + dur);
+    wob.frequency.value = 6 + Math.random() * 4; // 꾸르륵 흔들림
+    wg.gain.value = 14 * p;
+    wob.connect(wg).connect(o.frequency);
+    flut.type = 'square';
+    flut.frequency.setValueAtTime(34 * p, t); // 덜덜덜 (괄약근)
+    flut.frequency.linearRampToValueAtTime(22 * p, t + dur);
+    fg.gain.value = 0.45;
+    am.gain.value = 0.55;
+    flut.connect(fg).connect(am.gain);
+    f.type = 'lowpass';
+    f.Q.value = 7;
+    f.frequency.setValueAtTime(700 * p, t);
+    f.frequency.linearRampToValueAtTime(420 * p, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.9, t + 0.03);
+    g.gain.setValueAtTime(0.8, t + dur * 0.75);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f).connect(am).connect(g).connect(this.gain);
+    for (const x of [o, flut, wob]) { x.start(t); x.stop(t + dur + 0.03); }
+    // 바람 새는 소리
+    this.noise(dur, 0.18, 320 * p, delay, 'bandpass', 180, 2);
+    // 마무리 "뿡"
+    this.tone('sawtooth', 130 * p, 70 * p, 0.09, 0.35, delay + dur + 0.04);
+    this.noise(0.08, 0.25, 400, delay + dur + 0.04, 'lowpass', 150, 3);
+  }
+
   // ---------- 효과음 ----------
 
   synth(name, semitone) {
@@ -258,6 +326,10 @@ export class Sound {
       case 'chain': // 연쇄: 반음씩 올라가는 카주 "뿌-뿌우"
         this.kazoo(392 * k, 0, 0.09, 0.5);
         this.kazoo(523 * k, 0.08, 0.16, 0.55);
+        break;
+      case 'bomb': // 3×3 폭탄: 방귀 "뿌우우웅~뿡" + 질척
+        this.fart(1);
+        this.splat(1.2, 0.02);
         break;
       case 'special': // 철퍼덕 쾅: 큰 질척임 + 저음 쿵
         this.splat(1.6);

@@ -33,8 +33,28 @@ async function main() {
   renderMute();
   mute.addEventListener('click', () => { game.sound.setMuted(!game.sound.muted); renderMute(); });
   rotateTop(config);
+  // 시작할 때 소리 켤지 묻기 (?sound=1 / ?sound=0 이면 묻지 않음). 버튼 탭이 곧 오디오 잠금 해제.
+  const on = await askSound(params.get('sound'), !game.sound.muted);
+  game.sound.setMuted(!on);
+  renderMute();
   await game.init(startLevel);
   window.__game = game; // 디버그용
+}
+
+function askSound(preset, lastOn) {
+  const box = document.getElementById('sound-ask');
+  if (preset === '0' || preset === '1') { box.hidden = true; return Promise.resolve(preset === '1'); }
+  box.hidden = false;
+  // 지난번 선택에 포커스
+  box.querySelector(`[data-sound="${lastOn ? 'on' : 'off'}"]`).focus({ preventScroll: true });
+  return new Promise((resolve) => {
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-sound]');
+      if (!b) return;
+      box.hidden = true;
+      resolve(b.dataset.sound === 'on');
+    });
+  });
 }
 
 // 제목 ↔ 광고 배너 교대: 제목 → 광고1 → 제목 → 광고2 ...

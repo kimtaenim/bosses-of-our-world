@@ -258,3 +258,49 @@ body {
     15%, 80% { opacity: 1; transform: none; }
   }
 }
+
+/* 시작할 때 소리 켤지 묻는 창 */
+#sound-ask {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 12, 26, 0.72);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+#sound-ask[hidden] { display: none; }
+#sound-ask .box {
+  width: 100%;
+  max-width: 300px;
+  padding: 22px 18px 16px;
+  border: 2px solid #e0a21f;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #2d3257, #1c1f33);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  color: #fff;
+}
+#sound-ask .icon { font-size: 40px; line-height: 1; }
+#sound-ask p { margin: 10px 0 16px; font-size: 19px; font-weight: 800; }
+#sound-ask .btns { display: flex; gap: 10px; }
+#sound-ask button {
+  flex: 1;
+  padding: 13px 0;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+}
+#sound-ask button[data-sound="on"] {
+  color: #3b1f02;
+  background: linear-gradient(180deg, #ffe58a, #e0a21f);
+}
+#sound-ask small { display: block; margin-top: 12px; font-size: 12px; opacity: 0.65; }

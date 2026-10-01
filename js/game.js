@@ -594,7 +594,9 @@ export class Game {
         this.fx.flash(0.35);
         this.fx.shake(8);
         this.vibrate(30);
-        this.sound.play('special', 0, this.chars[pl.type]);
+        // 3×3 폭탄은 방귀, 나머지는 철퍼덕 쾅 + 인물 한마디
+        if (pl.effect === EFFECTS.bomb) this.sound.play('bomb');
+        else this.sound.play('special', 0, this.chars[pl.type]);
       });
     }
     for (const sp of spawns) {

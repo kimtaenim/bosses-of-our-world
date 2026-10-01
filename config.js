@@ -35,6 +35,7 @@ export const CONFIG = {
   SOUNDS: {
     match: 'assets/sounds/match.mp3',
     special: 'assets/sounds/special.mp3',
+    bomb: 'assets/sounds/bomb.mp3', // 3×3 폭탄 (없으면 합성 방귀)
     clear: 'assets/sounds/clear.mp3',
     chain: 'assets/sounds/chain.mp3', // 연쇄 단계마다 반음씩 피치 상승
   },
