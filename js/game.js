@@ -729,6 +729,7 @@ export class Game {
 
   land(t) {
     t.y = Math.round(t.y);
+    this.sound.play('land'); // 마림바 또르르
     this.faces.set(t, 'squish', 230, PRIO.MOVE);
     this.fx.dust(this.cx(t.x), this.cy(t.y) + this.T / 2 - 2);
     const A = 0.15 * this.J;

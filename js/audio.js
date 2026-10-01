@@ -1,5 +1,6 @@
 // 효과음. assets/sounds/<이름>.mp3가 있으면 그 파일을, 없으면 Web Audio로 합성한다.
-//   match   매치(모든 인물 공통): 점액질 "철퍼덕" 4종 돌려가며 + 작은 팡파레 "빠라밤"
+//   match   매치(모든 인물 공통): 점액질 "철퍼덕" 4종 돌려가며
+//   land    타일이 내려앉을 때: 마림바 "또르르" (연달아 앉으면 음이 계단처럼 올라감)
 //   chain   연쇄: 반음씩 올라가는 카주 (semitone 인자)
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
 //     fart 국기 3종(3×3 폭탄) 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
@@ -9,7 +10,10 @@
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { match: 45, chain: 40, clear: 300, special: 90 };
+const MIN_GAP = { match: 45, chain: 40, clear: 300, special: 90, land: 32 };
+
+// 마림바 음계 (C 메이저 펜타토닉, 두 옥타브 반)
+const MARIMBA = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760, 2093, 2349];
 
 // 특수 타일 그림(emblem) → 효과음 종류
 export const SPECIAL_KIND = { us: 'fart', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
@@ -416,17 +420,39 @@ export class Sound {
     for (const x of [o, lfo]) { x.start(t); x.stop(t + dur + 0.03); }
   }
 
+  // 마림바 한 음: 기음 + 4배음(나무 건반 특유의 "통") + 짧은 타격음
+  marimba(f, start = 0, vol = 0.22) {
+    const ctx = this.ctx;
+    const t = this.t0 + start;
+    for (const [m, v, dur] of [[1, 1, 0.45], [3.93, 0.28, 0.12], [9.2, 0.08, 0.04]]) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = f * m;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * v, t + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(this.gain);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+    }
+  }
+
   // ---------- 효과음 ----------
 
   synth(name, semitone) {
     const k = Math.pow(2, semitone / 12);
     switch (name) {
-      case 'match': // 철퍽 + 작은 팡파레 "빠라밤" (모든 인물 공통)
+      case 'match': // 점액질 철퍼덕 (모든 인물 공통)
         this.splat(1);
-        this.brass(523, 0.05, 0.07, 0.2);
-        this.brass(659, 0.12, 0.07, 0.2);
-        this.brass(784, 0.19, 0.22, 0.22);
         break;
+      case 'land': { // 마림바 "또르르": 0.25초 안에 이어 앉으면 다음 음, 쉬었다 오면 처음부터
+        const now = this.ctx.currentTime;
+        this.roll = now - (this.rollAt || 0) > 0.25 ? 0 : (this.roll || 0) + 1;
+        this.rollAt = now;
+        this.marimba(MARIMBA[this.roll % MARIMBA.length]);
+        break;
+      }
       case 'chain': // 연쇄: 반음씩 올라가는 카주 "뿌-뿌우"
         this.kazoo(392 * k, 0, 0.09, 0.5);
         this.kazoo(523 * k, 0.08, 0.16, 0.55);
