@@ -332,7 +332,7 @@ export class Sprites {
     return cv;
   }
 
-  // 특수 타일: 인물 배경색 + (정치인) 작은 동그라미 국기 / (기업인) 이름 글자 + 금색 테두리.
+  // 특수 타일: 인물 배경색 + (정치인) 작은 동그라미 국기 / (기업인) 아이콘 + 금색 테두리.
   // assets/special/<id>.png 가 있으면 배경색 대신 그 그림을 깐다.
   renderSpecial(ch, i) {
     const T = this.tile;
@@ -373,36 +373,9 @@ export class Sprites {
       ctx.scale((2 * R) / T, (2 * R) / T);
       flag(ctx, T, ch.color);
       ctx.restore();
-    } else if (!img) {
-      // 이름 글자 (길면 두 줄/작게)
-      const label = ch.specialLabel || ch.initial;
-      const n = parseInt(ch.color.slice(1), 16);
-      const lum = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
-      const ink = lum > 150 ? '#1d2747' : '#ffffff';
-      ctx.fillStyle = ink;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = ink === '#ffffff' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.5)';
-      ctx.shadowBlur = T * 0.04;
-      let fs = T * 0.34;
-      ctx.font = `900 ${fs}px ${FONT}`;
-      while (fs > T * 0.14 && ctx.measureText(label).width > T * 0.8) {
-        fs -= 1;
-        ctx.font = `900 ${fs}px ${FONT}`;
-      }
-      if (fs < T * 0.24 && label.length >= 4) {
-        const half = Math.ceil(label.length / 2);
-        fs = T * 0.3;
-        ctx.font = `900 ${fs}px ${FONT}`;
-        while (fs > T * 0.14 && ctx.measureText(label.slice(0, half)).width > T * 0.8) {
-          fs -= 1;
-          ctx.font = `900 ${fs}px ${FONT}`;
-        }
-        ctx.fillText(label.slice(0, half), T / 2, T * 0.36);
-        ctx.fillText(label.slice(half), T / 2, T * 0.66);
-      } else {
-        ctx.fillText(label, T / 2, T * 0.52);
-      }
+    } else if (!img && flag) {
+      // 아이콘 (사이버트럭·우주선·SNS): 인물 배경색 위에 큰 아이콘
+      flag(ctx, T, ch.color);
     }
     ctx.restore();
 

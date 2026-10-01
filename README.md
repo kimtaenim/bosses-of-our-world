@@ -75,7 +75,7 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 
 ### 특수 타일
 
-인물 배경색에 금색 테두리. 정치인은 가운데에 동그라미 국기, 기업인은 이름 글자(`specialLabel`). 판 위에서는 빛이 사선으로 훑고 지나간다.
+인물 배경색에 금색 테두리. 정치인은 가운데에 동그라미 국기, 기업인은 아이콘. 판 위에서는 빛이 사선으로 훑고 지나간다.
 
 | 인물 | 그림 | 효과 (`effect`, 없으면 `group` 기본값) |
 |---|---|---|
@@ -85,7 +85,7 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 | 저커버그 | SNS | 가로 한 줄 |
 
 - 효과 범위 안의 다른 특수 타일은 부르르 떨다가(0.11초) 연쇄로 터진다.
-- 국기는 `characters.json`의 `emblem` 값으로 `js/emblems.js`에서 그린다 (`us`, `nk`, `ru`).
+- 국기·아이콘은 `characters.json`의 `emblem` 값으로 `js/emblems.js`에서 그린다 (`us`, `nk`, `ru`, `car`, `rocket`, `sns`).
 - `assets/special/<id>.png`(정사각)를 넣으면 배경색 대신 그 그림을 쓴다.
 
 ## 표정 연출 조절
@@ -112,7 +112,7 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 | `js/board.js` | 보드 순수 로직 (생성·매치·낙하·셔플·가능한 수) |
 | `js/game.js` | 턴 진행, 연출 타이밍, 렌더링, HUD |
 | `js/effects.js` | 특수 효과 (bomb, row, column) |
-| `js/emblems.js` | 특수 타일 국기 그림 |
+| `js/emblems.js` | 특수 타일 국기·아이콘 그림 |
 | `js/fx.js` | 파티클·링·빛줄기·연쇄 텍스트·화면 흔들림 |
 | `js/sprites.js` | 타일 스프라이트 (표정별 이미지 / 플레이스홀더 얼굴) |
 | `js/faces.js` | 표정 우선순위, 평소 딴짓, 움찔·쳐다보기 반응, 몸짓 |
