@@ -89,6 +89,7 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 | 저커버그 | SNS | 가로 한 줄 |
 | 알트만 | AI 로봇 | 판 위의 같은 인물 전부 (번개) |
 
+- 특수 타일은 **그냥 탭해도** 그 자리에서 터진다. 같은 인물과 한 줄로 맞춰 지워도 터지고, 끌어서 바꾸기도 된다.
 - 효과 범위 안의 다른 특수 타일은 부르르 떨다가(0.11초) 연쇄로 터진다.
 - 국기·아이콘은 `characters.json`의 `emblem` 값으로 `js/emblems.js`에서 그린다 (`us`, `nk`, `ru`, `oil`, `car`, `rocket`, `sns`, `robot`).
 - `assets/special/<id>.png`(정사각)를 넣으면 배경색 대신 그 그림을 쓴다.

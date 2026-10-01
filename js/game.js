@@ -180,6 +180,34 @@ export class Game {
     }
   }
 
+  // 특수 타일을 탭하면 그 자리에서 바로 발동
+  async detonate(cell) {
+    if (this.busy || !this.board) return;
+    const t = this.board.get(cell.r, cell.c);
+    if (!t || !t.special) return;
+    this.busy = true;
+    this.busySince = this.tw.time;
+    this.selected = null;
+    this.clearHint();
+    this.spot = null;
+    this.lastMatch = this.tw.time;
+    try {
+      const i = this.board.idx(cell.r, cell.c);
+      await this.resolveStep({ groups: [{ type: t.type, cells: [i] }], matched: new Set([i]) }, 1, null);
+      if (this.score >= this.target()) {
+        await this.levelClear();
+      } else {
+        await this.animateFalls(this.board.collapse());
+        await this.resolve(null); // 떨어진 뒤 생긴 연쇄 처리 (+ 둘 곳 없으면 셔플)
+      }
+    } catch (err) {
+      console.error(err);
+      this.repairBoard();
+    } finally {
+      this.endTurn();
+    }
+  }
+
   async playSwap(a, b) {
     const board = this.board;
     const ta = board.get(a.r, a.c), tb = board.get(b.r, b.c);

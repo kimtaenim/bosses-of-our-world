@@ -42,9 +42,17 @@ export function attachInput(canvas, game) {
 
   const end = (e) => {
     if (!drag || e.pointerId !== drag.id) return;
-    // 이미 선택된 타일을 다시 탭하면 선택 해제
-    if (drag.wasSelected) game.selected = null;
+    const { cell, wasSelected } = drag;
     drag = null;
+    // 특수 타일은 그냥 탭하면 바로 터진다 (끌어서 바꾸기도 그대로 됨)
+    const t = game.board && game.board.get(cell.r, cell.c);
+    if (e.type === 'pointerup' && t && t.special) {
+      game.selected = null;
+      game.detonate(cell);
+      return;
+    }
+    // 이미 선택된 타일을 다시 탭하면 선택 해제
+    if (wasSelected) game.selected = null;
   };
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
