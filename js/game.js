@@ -205,19 +205,17 @@ export class Game {
     return Math.max(0, Math.ceil(this.bonusSec() - this.elapsed() / 1000));
   }
 
-  // 1초당 보너스 점수: 판이 올라갈수록 커짐
-  bonusPerSec() {
-    return (this.cfg.TIME_BONUS_PER_SEC || 10) + (this.cfg.TIME_BONUS_STEP || 0) * (this.level - 1);
-  }
+  bonusPerSec() { return this.cfg.TIME_BONUS_PER_SEC || 10; }
 
-  // 이 판의 보너스 시간(초): 인물 수가 늘면 길어짐
+  // 이 판의 보너스 시간(초): 인물 수가 늘면, 판이 올라가면 길어짐
   bonusSec() {
     const tb = this.cfg.TIME_BONUS_SEC;
-    if (typeof tb === 'number') return tb;
+    if (typeof tb === 'number') return tb + (this.cfg.TIME_BONUS_SEC_STEP || 0) * (this.level - 1);
     const n = this.board ? this.board.types.length : 4;
     let sec = 60;
     for (const k of Object.keys(tb).map(Number).sort((a, b) => a - b)) if (n >= k) sec = tb[k];
-    return sec;
+    // 판이 올라갈수록 보너스 시간을 더 줌
+    return sec + (this.cfg.TIME_BONUS_SEC_STEP || 0) * (this.level - 1);
   }
 
   addTotal(pts) {
