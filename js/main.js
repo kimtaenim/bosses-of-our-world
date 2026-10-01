@@ -31,7 +31,19 @@ async function main() {
   const mute = document.getElementById('mute');
   const renderMute = () => { mute.textContent = game.sound.muted ? '🔇' : '🔊'; };
   renderMute();
-  mute.addEventListener('click', () => { game.sound.setMuted(!game.sound.muted); renderMute(); });
+  mute.addEventListener('click', () => {
+    game.sound.setMuted(!game.sound.muted);
+    renderMute();
+    if (!game.sound.muted) game.sound.ready().then(() => game.sound.play('match')).catch(() => {}); // 켜졌다는 확인 소리
+  });
+  // ?debug=1: 오디오 상태를 화면에 표시 (폰에서 소리 문제 확인용)
+  if (params.get('debug') === '1') {
+    const best = document.getElementById('best-box');
+    setInterval(() => {
+      const sd = game.sound;
+      best.textContent = `audio:${sd.ctx ? sd.ctx.state : 'none'} muted:${sd.muted} tag:${sd.tag ? (sd.tag.paused ? 'paused' : 'play') : '-'}`;
+    }, 500);
+  }
   // 부가 기능(광고 교대·소리)이 실패해도 게임은 반드시 시작한다
   try { rotateTop(config); } catch (err) { console.error(err); }
   // 게임은 묻는 창과 상관없이 바로 시작한다 (창이 안 보이거나 깨져도 멈추지 않게).
@@ -39,7 +51,7 @@ async function main() {
   askSound(params.get('sound'), !game.sound.muted).then((on) => {
     game.sound.setMuted(!on);
     renderMute();
-    if (on) game.sound.ready().then(() => game.sound.play('land')).catch(() => {});
+    if (on) game.sound.ready().then(() => game.sound.play('match')).catch(() => {}); // 켜졌다는 확인 소리
   }).catch((err) => console.error(err));
   window.__game = game; // 디버그용
   await game.init(startLevel);

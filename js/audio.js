@@ -36,6 +36,7 @@ export class Sound {
     this.muted = m;
     try { localStorage.setItem(MUTE_KEY, m ? '1' : '0'); } catch (_) { /* 무시 */ }
     if (m) {
+      this.silentTag(false);
       if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
     } else {
       this.unlock();
@@ -43,8 +44,38 @@ export class Sound {
     }
   }
 
+  // iOS 무음(진동) 모드에서도 소리가 나게: 무음 오디오 태그를 반복 재생해 두면
+  // 웹 오디오가 '미디어 재생'으로 취급되어 무음 스위치에 막히지 않는다 (예전 iOS 포함)
+  silentTag(on) {
+    if (typeof document === 'undefined') return;
+    if (!this.tag) {
+      if (!on) return;
+      const rate = 8000, n = 4000; // 0.5초짜리 무음 WAV
+      const buf = new Uint8Array(44 + n);
+      const dv = new DataView(buf.buffer);
+      const w = (o, str) => { for (let i = 0; i < str.length; i++) buf[o + i] = str.charCodeAt(i); };
+      w(0, 'RIFF'); dv.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true);
+      dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, rate, true); dv.setUint32(28, rate, true);
+      dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, 'data'); dv.setUint32(40, n, true);
+      buf.fill(128, 44);
+      let bin = '';
+      for (const b of buf) bin += String.fromCharCode(b);
+      const a = document.createElement('audio');
+      a.src = 'data:audio/wav;base64,' + btoa(bin);
+      a.loop = true;
+      a.preload = 'auto';
+      a.setAttribute('playsinline', '');
+      a.setAttribute('x-webkit-airplay', 'deny');
+      this.tag = a;
+    }
+    try {
+      if (on) { const pr = this.tag.play(); if (pr) pr.catch(() => {}); } else this.tag.pause();
+    } catch (_) { /* 무시 */ }
+  }
+
   // 무음 1샘플 재생: iOS는 사용자 탭 안에서 소리를 한 번 내야 오디오가 확실히 풀린다
   poke() {
+    this.silentTag(!this.muted);
     if (!this.ctx) return;
     try {
       const blank = this.ctx.createBufferSource();
@@ -59,8 +90,10 @@ export class Sound {
   // 응답이 없는 경우가 있다. 그래서 돌아오면 표시해 두고, 다음 탭에서 오디오를 새로 만든다.
   bindUnlock() {
     if (typeof document === 'undefined') return;
+    // 브라우저가 '사용자 동작'으로 인정하는 이벤트에서만 깨운다 (손가락이 닿는 순간인 pointerdown은
+    // 안드로이드 크롬이 인정하지 않아, 그때 만든 오디오는 잠긴 채로 남는다)
     const wake = () => this.unlock();
-    for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) {
+    for (const ev of ['touchend', 'pointerup', 'mouseup', 'click', 'keydown']) {
       document.addEventListener(ev, wake, { capture: true, passive: true });
     }
     const away = () => {

@@ -158,7 +158,7 @@ export class Game {
   canInput() { return !this.busy; }
 
   onUserInput() {
-    this.sound.unlock();
+    // 오디오 잠금 해제는 Sound가 손가락을 뗄 때(touchend/click) 직접 처리한다
     this.lastInput = this.tw.time;
     this.clearHint();
   }
