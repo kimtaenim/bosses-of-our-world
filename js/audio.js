@@ -1,6 +1,7 @@
 // 효과음. assets/sounds/<이름>.mp3가 있으면 그 파일을, 없으면 Web Audio로 합성한다.
 //   match   매치(모든 인물 공통): 점액질 "철퍼덕" 4종 돌려가며
 //   land    타일이 내려앉을 때: 마림바 "또르르" (연달아 앉으면 음이 계단처럼 올라감)
+//   miss    잘못 옮겼을 때: "아~ 오"
 //   chain   연쇄: 반음씩 올라가는 카주 (semitone 인자)
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
 //     fart 국기 3종(3×3 폭탄) 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
@@ -10,7 +11,7 @@
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { match: 45, chain: 40, clear: 300, special: 90, land: 32 };
+const MIN_GAP = { miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 32 };
 
 // 마림바 음계 (C 메이저 펜타토닉, 두 옥타브 반)
 const MARIMBA = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760, 2093, 2349];
@@ -433,6 +434,37 @@ export class Sound {
     }
   }
 
+  // 사람 목소리 흉내: 톱니파 성대 + 모음 포먼트(대역 필터 3개). formants: [[주파수, 세기], ...]
+  vowel(start, dur, f0, f1, formants, vol = 0.5) {
+    const ctx = this.ctx;
+    const t = this.t0 + start;
+    const o = ctx.createOscillator();
+    const vib = ctx.createOscillator();
+    const vg = ctx.createGain();
+    const out = ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    vib.frequency.value = 5.5;
+    vg.gain.value = f0 * 0.02;
+    vib.connect(vg).connect(o.frequency);
+    for (const [ff, amp] of formants) {
+      const bp = ctx.createBiquadFilter();
+      const g = ctx.createGain();
+      bp.type = 'bandpass';
+      bp.frequency.value = ff;
+      bp.Q.value = ff / 90;
+      g.gain.value = amp;
+      o.connect(bp).connect(g).connect(out);
+    }
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(vol, t + 0.03);
+    out.gain.setValueAtTime(vol, t + dur * 0.6);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    out.connect(this.gain);
+    for (const x of [o, vib]) { x.start(t); x.stop(t + dur + 0.03); }
+  }
+
   // ---------- 효과음 ----------
 
   synth(name, semitone) {
@@ -446,6 +478,12 @@ export class Sound {
         this.roll = now - (this.rollAt || 0) > 0.25 ? 0 : (this.roll || 0) + 1;
         this.rollAt = now;
         this.marimba(MARIMBA[this.roll % MARIMBA.length]);
+        break;
+      }
+      case 'miss': { // 헛스왑: 실망한 "아~ 오" (높은 "아" → 낮게 처지는 "오")
+        const p = 0.95 + Math.random() * 0.1;
+        this.vowel(0, 0.2, 290 * p, 300 * p, [[850, 1], [1250, 0.6], [2600, 0.25]], 1.6);
+        this.vowel(0.24, 0.42, 225 * p, 175 * p, [[480, 1], [820, 0.55], [2400, 0.15]], 1.6);
         break;
       }
       case 'chain': // 연쇄: 반음씩 올라가는 카주 "뿌-뿌우"

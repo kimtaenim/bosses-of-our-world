@@ -192,6 +192,7 @@ export class Game {
     await this.animateSwap(ta, a, b, tb);
     if (board.findMatches().groups.length === 0) {
       board.swap(a, b);
+      this.sound.play('miss'); // 아~ 오
       await this.animateSwap(ta, b, a, tb);
       // 헛스왑: 둘 다 삐져서 도리도리
       for (const t of [ta, tb]) {
