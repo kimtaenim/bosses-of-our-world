@@ -75,10 +75,10 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 
 ### 특수 타일
 
-배경(국기·아이콘) 위에 그 인물의 얼굴(smirk 원화에서 배경을 오려낸 것)을 올리고 금색 테두리를 두른다. 판 위에서는 빛이 사선으로 훑고 지나간다.
+국기·아이콘에 금색 테두리를 두른다 (인물은 국기·배경색으로 구분, 얼굴은 넣지 않음). 판 위에서는 빛이 사선으로 훑고 지나간다.
 
-- 배경은 `characters.json`의 `emblem` 값으로 `js/emblems.js`에서 코드로 그린다: `us` 성조기, `nk` 인공기, `ru` 러시아 국기, `car` 자동차, `smile` 미소 화살표, `sns` SNS 말풍선.
-- `assets/special/<id>.png`(정사각)를 넣으면 코드 그림 대신 그 그림을 배경으로 쓴다.
+- 배경은 `characters.json`의 `emblem` 값으로 `js/emblems.js`에서 코드로 그린다: `us` 성조기, `nk` 인공기, `ru` 러시아 국기, `car` 사이버트럭, `rocket` 우주선, `sns` SNS 말풍선.
+- `assets/special/<id>.png`(정사각)를 넣으면 코드 그림 대신 그 그림을 쓴다.
 
 ## 표정 연출 조절
 

@@ -13,30 +13,26 @@ function star(ctx, cx, cy, r, color) {
   ctx.fill();
 }
 
-// 아이콘 배경: 인물 색 바탕에 흰 아이콘을 비스듬한 격자 무늬로 깔아 얼굴에 가려져도 보이게
+// 아이콘 배경: 인물 색 바탕 + 위쪽 빛 + 큰 아이콘 하나 (밝은 배경이면 어두운 잉크)
 function iconBg(ctx, T, color, draw) {
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, T, T);
   const g = ctx.createLinearGradient(0, 0, 0, T);
-  g.addColorStop(0, 'rgba(255,255,255,0.3)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
+  g.addColorStop(0, 'rgba(255,255,255,0.35)');
+  g.addColorStop(1, 'rgba(0,0,0,0.12)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, T, T);
   const n = parseInt(color.slice(1), 16);
   const lum = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
-  const ink = lum > 170 ? 'rgba(25,35,70,0.5)' : 'rgba(255,255,255,0.7)';
-  const cell = T * 0.34;
-  for (let r = -1; r < 4; r++) {
-    for (let c = -1; c < 4; c++) {
-      ctx.save();
-      ctx.translate(c * cell + (r % 2 ? cell / 2 : 0), r * cell * 0.9);
-      ctx.scale(cell / T, cell / T);
-      ctx.fillStyle = ink;
-      ctx.strokeStyle = ink;
-      draw();
-      ctx.restore();
-    }
-  }
+  const ink = lum > 170 ? '#1d2747' : '#ffffff';
+  ctx.save();
+  ctx.fillStyle = ink;
+  ctx.strokeStyle = ink;
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = T * 0.04;
+  ctx.shadowOffsetY = T * 0.02;
+  draw(ink, lum > 170 ? color : '#1d2747');
+  ctx.restore();
 }
 
 export const EMBLEMS = {
@@ -76,57 +72,121 @@ export const EMBLEMS = {
       ctx.fillRect(0, (i * T) / 3, T, T / 3 + 0.5);
     });
   },
-  // 자동차
+  // 사이버트럭: 각진 삼각 지붕 실루엣
   car(ctx, T, color) {
-    iconBg(ctx, T, color, () => {
-      ctx.save();
-      ctx.translate(T / 2, T * 0.56);
-      ctx.rotate(-0.12);
-      const w = T * 0.92;
+    iconBg(ctx, T, color, (ink, hole) => {
+      const y = T * 0.62;
       ctx.beginPath();
-      ctx.moveTo(-w / 2, T * 0.06);
-      ctx.lineTo(-w / 2, -T * 0.04);
-      ctx.quadraticCurveTo(-w * 0.42, -T * 0.1, -w * 0.25, -T * 0.11);
-      ctx.quadraticCurveTo(-w * 0.12, -T * 0.27, w * 0.08, -T * 0.26);
-      ctx.quadraticCurveTo(w * 0.25, -T * 0.25, w * 0.33, -T * 0.11);
-      ctx.quadraticCurveTo(w * 0.5, -T * 0.08, w / 2, T * 0.02);
-      ctx.lineTo(w / 2, T * 0.06);
+      ctx.moveTo(T * 0.06, y);
+      ctx.lineTo(T * 0.08, T * 0.5);
+      ctx.lineTo(T * 0.5, T * 0.3);     // 지붕 꼭짓점
+      ctx.lineTo(T * 0.94, T * 0.47);
+      ctx.lineTo(T * 0.95, y);
       ctx.closePath();
       ctx.fill();
-      for (const x of [-w * 0.28, w * 0.28]) { ctx.beginPath(); ctx.arc(x, T * 0.08, T * 0.1, 0, Math.PI * 2); ctx.fill(); }
-      ctx.restore();
+      // 창문 띠
+      ctx.fillStyle = hole;
+      ctx.beginPath();
+      ctx.moveTo(T * 0.3, T * 0.43);
+      ctx.lineTo(T * 0.5, T * 0.34);
+      ctx.lineTo(T * 0.68, T * 0.41);
+      ctx.lineTo(T * 0.66, T * 0.45);
+      ctx.lineTo(T * 0.32, T * 0.46);
+      ctx.closePath();
+      ctx.fill();
+      // 바퀴 (각진 휠 아치 + 바퀴)
+      for (const x of [T * 0.27, T * 0.75]) {
+        ctx.fillStyle = hole;
+        ctx.beginPath();
+        ctx.moveTo(x - T * 0.13, y + 0.5);
+        ctx.lineTo(x - T * 0.08, T * 0.52);
+        ctx.lineTo(x + T * 0.08, T * 0.52);
+        ctx.lineTo(x + T * 0.13, y + 0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = ink;
+        ctx.beginPath();
+        ctx.arc(x, T * 0.62, T * 0.085, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = hole;
+        ctx.beginPath();
+        ctx.arc(x, T * 0.62, T * 0.035, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // 앞쪽 라이트 줄
+      ctx.fillStyle = hole;
+      ctx.fillRect(T * 0.78, T * 0.48, T * 0.15, T * 0.015);
     });
   },
-  // 미소 곡선 화살표
-  smile(ctx, T, color) {
-    iconBg(ctx, T, color, () => {
-      ctx.lineCap = 'round';
-      ctx.lineWidth = T * 0.09;
+  // 우주선: 비스듬히 솟는 로켓 + 불꽃
+  rocket(ctx, T, color) {
+    iconBg(ctx, T, color, (ink, hole) => {
+      ctx.save();
+      ctx.translate(T * 0.52, T * 0.5);
+      ctx.rotate(Math.PI / 5);
+      const L = T * 0.62, W = T * 0.2;
+      // 불꽃
+      ctx.save();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#FF6B2C';
       ctx.beginPath();
-      ctx.moveTo(T * 0.12, T * 0.56);
-      ctx.quadraticCurveTo(T * 0.48, T * 0.86, T * 0.84, T * 0.6);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(T * 0.9, T * 0.53);
-      ctx.lineTo(T * 0.86, T * 0.73);
-      ctx.lineTo(T * 0.7, T * 0.62);
+      ctx.moveTo(-W * 0.38, L * 0.38);
+      ctx.quadraticCurveTo(0, L * 0.95, W * 0.38, L * 0.38);
       ctx.closePath();
       ctx.fill();
+      ctx.fillStyle = '#FFE14D';
+      ctx.beginPath();
+      ctx.moveTo(-W * 0.2, L * 0.38);
+      ctx.quadraticCurveTo(0, L * 0.72, W * 0.2, L * 0.38);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      // 동체 (둥근 머리)
+      ctx.fillStyle = ink;
+      ctx.beginPath();
+      ctx.moveTo(-W / 2, L * 0.4);
+      ctx.lineTo(-W / 2, -L * 0.15);
+      ctx.quadraticCurveTo(-W / 2, -L * 0.5, 0, -L * 0.55);
+      ctx.quadraticCurveTo(W / 2, -L * 0.5, W / 2, -L * 0.15);
+      ctx.lineTo(W / 2, L * 0.4);
+      ctx.closePath();
+      ctx.fill();
+      // 날개
+      for (const sgn of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(sgn * W / 2, L * 0.1);
+        ctx.lineTo(sgn * W * 1.05, L * 0.42);
+        ctx.lineTo(sgn * W / 2, L * 0.4);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // 창문
+      ctx.fillStyle = hole;
+      ctx.beginPath();
+      ctx.arc(0, -L * 0.18, W * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      // 별
+      ctx.shadowBlur = 0;
+      for (const [x, y, r] of [[0.16, 0.2, 0.03], [0.82, 0.78, 0.025], [0.18, 0.78, 0.02], [0.85, 0.2, 0.02]]) {
+        star(ctx, T * x, T * y, T * r, ink);
+      }
     });
   },
   // SNS 말풍선
   sns(ctx, T, color) {
-    iconBg(ctx, T, color, () => {
+    iconBg(ctx, T, color, (ink, hole) => {
       ctx.beginPath();
       ctx.ellipse(T / 2, T * 0.44, T * 0.44, T * 0.3, 0, 0, Math.PI * 2);
       ctx.moveTo(T * 0.26, T * 0.66);
       ctx.lineTo(T * 0.14, T * 0.9);
       ctx.lineTo(T * 0.44, T * 0.72);
       ctx.fill();
-      ctx.fillStyle = color;
+      ctx.fillStyle = hole;
       ctx.font = `900 ${T * 0.26}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'transparent';
       ctx.fillText('SNS', T / 2, T * 0.45);
     });
   },

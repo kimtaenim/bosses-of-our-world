@@ -42,39 +42,6 @@ function cornerColor(img) {
   }
 }
 
-// 원화의 단색 배경(모서리에서 이어진 비슷한 색)을 투명하게 만든 캔버스
-function cutout(img) {
-  const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
-  ctx.drawImage(img, 0, 0);
-  let im;
-  try { im = ctx.getImageData(0, 0, W, H); } catch (_) { return cv; }
-  const d = im.data;
-  const r0 = d[0], g0 = d[1], b0 = d[2];
-  const HARD = 40, SOFT = 85;
-  const seen = new Uint8Array(W * H);
-  const stack = [0, W - 1, (H - 1) * W, H * W - 1];
-  while (stack.length) {
-    const p = stack.pop();
-    if (seen[p]) continue;
-    seen[p] = 1;
-    const i = p * 4;
-    const e = Math.hypot(d[i] - r0, d[i + 1] - g0, d[i + 2] - b0);
-    if (e > SOFT) continue;
-    d[i + 3] = e <= HARD ? 0 : Math.round(255 * (e - HARD) / (SOFT - HARD));
-    if (e > HARD) continue;
-    const x = p % W, y = (p / W) | 0;
-    if (x > 0) stack.push(p - 1);
-    if (x < W - 1) stack.push(p + 1);
-    if (y > 0) stack.push(p - W);
-    if (y < H - 1) stack.push(p + W);
-  }
-  ctx.putImageData(im, 0, 0);
-  return cv;
-}
-
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -246,7 +213,6 @@ export class Sprites {
     this.border = options.border || 0; // 원화 둘레 인물 색 테두리 두께(px). 크게 확대해 배경이 안 보일 때 색 구분용
     this.faceImgs = [];   // [charIdx] → { expr: Image } | null
     this.specialImgs = [];
-    this.faceCutouts = [];
     this.normal = [];     // [charIdx] → { expr: canvas }
     this.special = [];
     this.pxScale = 0;
@@ -255,7 +221,6 @@ export class Sprites {
   async load() {
     this.faceImgs = await Promise.all(this.characters.map((ch) => this.loadFaces(ch)));
     this.specialImgs = await Promise.all(this.characters.map((ch) => loadImage(ch.special)));
-    this.faceCutouts = this.faceImgs.map((imgs) => (imgs ? cutout(imgs.smirk) : null));
   }
 
   async loadFaces(ch) {
@@ -367,7 +332,7 @@ export class Sprites {
     return cv;
   }
 
-  // 특수 타일: 국기·아이콘 배경 + 오려낸 얼굴 + 금색 테두리.
+  // 특수 타일: 국기·아이콘 + 금색 테두리 (인물은 국기·배경색으로 구분).
   // 배경은 assets/special/<id>.png 가 있으면 그 그림, 없으면 emblems.js의 코드 그림, 그것도 없으면 인물 색.
   renderSpecial(ch, i) {
     const T = this.tile;
@@ -381,19 +346,6 @@ export class Sprites {
     else if (emblem) emblem(ctx, T, ch.color);
     else { ctx.fillStyle = ch.color; ctx.fillRect(0, 0, T, T); }
 
-    // 얼굴: 아래쪽 가운데에 살짝 작게 (배경이 둘레로 보이도록)
-    const cut = this.faceCutouts[i];
-    const s = T * 0.84;
-    ctx.shadowColor = 'rgba(0,0,0,0.45)';
-    ctx.shadowBlur = T * 0.06;
-    ctx.shadowOffsetY = T * 0.02;
-    if (cut) {
-      ctx.drawImage(cut, (T - s) / 2, T - s + T * 0.04, s, s);
-    } else {
-      ctx.translate((T - s) / 2, T - s + T * 0.04);
-      ctx.scale(s / 56, s / 56);
-      drawPlaceholderFace(ctx, 'smirk', ch.color, '#ffffff');
-    }
     ctx.restore();
 
     // 금색 이중 테두리
