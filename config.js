@@ -17,6 +17,8 @@ export const CONFIG = {
 
   // 입력이 없을 때 힌트까지 대기 시간
   HINT_DELAY_MS: 2000,
+  // 이 시간 동안 하나도 못 맞추면(헛스왑 포함) 맞출 곳을 금빛으로 표시
+  SPOTLIGHT_DELAY_MS: 5000,
 
   // 평소 딴짓(눈 굴리기·곁눈질·깜빡임·깡충) 빈도 배율. 0이면 가만히 있음.
   IDLE_ACTIVITY: 1.8,

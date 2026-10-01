@@ -44,6 +44,8 @@ export class Game {
     this.shownScore = 0;
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
+    this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
+    this.lastMatch = 0;
     this.lastTs = 0;
     this.best = loadProgress().best;
   }
@@ -123,6 +125,7 @@ export class Game {
   // 새 보드를 만들고 위에서 쏟아져 내려오게 한다
   async startLevel(level) {
     this.level = level;
+    this.spot = null;
     this.score = 0;
     this.shownScore = 0;
     this.best = Math.max(this.best, level);
@@ -139,7 +142,7 @@ export class Game {
       }
     }
     await this.animateFalls(falls, (f) => (rows - 1 - f.toR) * 35 + f.c * 12 + Math.random() * 30);
-    this.lastInput = this.tw.time;
+    this.lastInput = this.lastMatch = this.tw.time;
     // 착지 후 다 같이 환호 (입력은 막지 않음)
     for (const f of falls) {
       this.tw.after(260 + f.c * 35 + f.toR * 15, () => {
@@ -259,6 +262,8 @@ export class Game {
 
   // swapCells: 스왑한 두 칸 (특수 타일 생성 위치 우선순위 순)
   async resolve(swapCells) {
+    this.spot = null;
+    this.lastMatch = this.tw.time;
     let cascade = 0;
     for (;;) {
       const m = this.board.findMatches();
@@ -279,6 +284,7 @@ export class Game {
   async shuffleBoard() {
     this.selected = null;
     this.clearHint();
+    this.spot = null;
     // 1) 먼저 "리셔플!"을 띄우고, 얼굴들이 놀라 부들부들 떠는 동안 잠깐 기다림
     this.showBanner('리셔플!');
     this.sound.play('chain', 5);
@@ -378,6 +384,66 @@ export class Game {
       if (t) t.hx = t.hy = 0;
     }
     this.hint = null;
+  }
+
+  // 오래 못 맞추면: 맞춰질 줄을 금빛 테두리로, 옮길 타일에서 목적지로 화살표
+  updateSpot() {
+    if (this.busy || !this.board) return;
+    const now = this.tw.time;
+    if (this.spot && !this.board.wouldMatch(this.spot.a, this.spot.b)) this.spot = null;
+    if (this.spot || now - this.lastMatch < this.cfg.SPOTLIGHT_DELAY_MS) return;
+    const mv = this.board.findMove();
+    if (!mv) return;
+    const [a, b] = mv;
+    const cells = this.board.matchCellsFor(a, b);
+    // 옮길 타일: 자기 인물로 맞춰지는 칸으로 가는 쪽
+    const has = (p) => cells.some((q) => q.r === p.r && q.c === p.c);
+    const ta = this.board.get(a.r, a.c);
+    const aMoves = has(b) && cells.some((q) => this.board.typeAt(q.r, q.c) === ta.type && !(q.r === b.r && q.c === b.c) && !(q.r === a.r && q.c === a.c));
+    const [from, to] = aMoves ? [a, b] : [b, a];
+    this.spot = { a, b, cells, from, to, t0: now };
+  }
+
+  drawSpot(ts) {
+    const sp = this.spot;
+    if (!sp || this.busy) return;
+    const ctx = this.ctx;
+    const t = (this.tw.time - sp.t0) / 1000;
+    const fade = Math.min(1, t * 3);
+    const pulse = 0.5 + 0.5 * Math.sin(ts / 180);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.shadowColor = 'rgba(255,200,40,0.95)';
+    ctx.shadowBlur = 10 + 10 * pulse;
+    ctx.strokeStyle = `rgba(255,${210 + 30 * pulse | 0},${60 + 80 * pulse | 0},1)`;
+    ctx.lineWidth = 3.5 + 1.5 * pulse;
+    const s = this.T + 2 + 3 * pulse;
+    // 바꾼 뒤 기준 칸이므로, 목적지 칸 대신 옮길 타일의 현재 칸을 표시
+    for (const q of sp.cells) {
+      const p = q.r === sp.to.r && q.c === sp.to.c ? sp.from : q;
+      this.roundRect(this.cx(p.c) - s / 2, this.cy(p.r) - s / 2, s, s, 12);
+      ctx.stroke();
+    }
+    // 화살표: 옮길 타일 → 목적지, 그쪽으로 살짝 밀려 나감
+    const dx = sp.to.c - sp.from.c, dy = sp.to.r - sp.from.r;
+    const push = 4 + 6 * pulse;
+    const mx = (this.cx(sp.from.c) + this.cx(sp.to.c)) / 2 + dx * push;
+    const my = (this.cy(sp.from.r) + this.cy(sp.to.r)) / 2 + dy * push;
+    const L = this.T * 0.22;
+    ctx.translate(mx, my);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.beginPath();
+    ctx.moveTo(L, 0);
+    ctx.lineTo(-L * 0.6, -L * 0.85);
+    ctx.lineTo(-L * 0.6, L * 0.85);
+    ctx.closePath();
+    ctx.fillStyle = '#FFD84A';
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#5a3a00';
+    ctx.stroke();
+    ctx.restore();
   }
 
   updateHint() {
@@ -713,6 +779,7 @@ export class Game {
     this.faces.update();
     this.watchdog();
     this.updateHint();
+    this.updateSpot();
     this.updateScoreDisplay(dt);
     this.render(ts);
     requestAnimationFrame((t) => this.loop(t));
@@ -760,6 +827,7 @@ export class Game {
       ctx.stroke();
     }
 
+    this.drawSpot(ts);
     this.fx.draw(ctx);
 
     if (this.fx.flashA > 0) {

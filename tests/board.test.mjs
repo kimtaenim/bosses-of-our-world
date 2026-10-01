@@ -80,3 +80,17 @@ test('shuffle leaves a playable board without matches', () => {
   assert.equal(b.findMatches().groups.length, 0);
   assert.ok(b.findMove());
 });
+
+test('matchCellsFor lists the line formed after the swap', () => {
+  const b = fromRows([
+    '0012',
+    '2301',
+    '1230',
+  ]);
+  const cells = b.matchCellsFor({ r: 0, c: 3 }, { r: 1, c: 3 }); // 매치 없음
+  assert.deepEqual(cells, []);
+  const hit = b.matchCellsFor({ r: 0, c: 2 }, { r: 1, c: 2 }); // (1,2)=0 이 위로 올라가 000
+  const key = (q) => `${q.r},${q.c}`;
+  assert.deepEqual(hit.map(key).sort(), ['0,0', '0,1', '0,2']);
+  assert.equal(b.typeAt(0, 2), 1); // 원상 복구
+});

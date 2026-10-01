@@ -128,6 +128,24 @@ export class Board {
     return ok;
   }
 
+  // a↔b를 바꾸면 한 줄로 맞춰지는 칸들 [{ r, c }] (바꾼 뒤 위치 기준)
+  matchCellsFor(a, b) {
+    if (!this.get(a.r, a.c) || !this.get(b.r, b.c)) return [];
+    this.swap(a, b);
+    const out = new Map();
+    for (const p of [a, b]) {
+      const type = this.typeAt(p.r, p.c);
+      for (const [dr, dc] of [[0, 1], [1, 0]]) {
+        const run = [p];
+        for (let k = 1; this.typeAt(p.r - dr * k, p.c - dc * k) === type; k++) run.push({ r: p.r - dr * k, c: p.c - dc * k });
+        for (let k = 1; this.typeAt(p.r + dr * k, p.c + dc * k) === type; k++) run.push({ r: p.r + dr * k, c: p.c + dc * k });
+        if (run.length >= 3) for (const q of run) out.set(q.r * this.cols + q.c, q);
+      }
+    }
+    this.swap(a, b);
+    return [...out.values()];
+  }
+
   // 가능한 수 목록 (없으면 빈 배열)
   allMoves() {
     const moves = [];
