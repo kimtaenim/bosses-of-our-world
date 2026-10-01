@@ -4,18 +4,19 @@
 //   miss    잘못 옮겼을 때: "아~ 오"
 //   chain   연쇄: 반음씩 올라가는 카주 (semitone 인자)
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
-//     fart 국기 3종(3×3 폭탄) 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
+//     anthem 성조기: 마림바 "솔미도미솔도" (성조기여 영원하라 첫 구절)
+//     fart 인공기·러시아 국기 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
 //     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / boom 그 밖
 //   clear   판 클리어 (철퍼덕 와르르)
 
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
+const MIN_GAP = { special_anthem: 1300, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
-export const SPECIAL_KIND = { us: 'fart', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
+export const SPECIAL_KIND = { us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -453,6 +454,24 @@ export class Sound {
     for (const x of [o, lfo]) { x.start(t); x.stop(t + dur + 0.03); }
   }
 
+  // 마림바 한 음: 기음 + 4배음(나무 건반의 "통") + 짧은 타격음
+  marimba(f, start = 0, vol = 0.24, len = 0.45) {
+    const ctx = this.ctx;
+    const t = this.t0 + start;
+    for (const [m, v, dur] of [[1, 1, len], [3.93, 0.3, 0.12], [9.2, 0.08, 0.04]]) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = f * m;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * v, t + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(this.gain);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+    }
+  }
+
   // 구슬 똑딱: 아주 짧은 나무 타격음 (멜로디가 들리지 않게 음높이를 무작위로)
   tick(start = 0, vol = 0.3) {
     const ctx = this.ctx;
@@ -524,6 +543,13 @@ export class Sound {
         this.kazoo(392 * k, 0, 0.09, 0.5);
         this.kazoo(523 * k, 0.08, 0.16, 0.55);
         break;
+      case 'special_anthem': { // 성조기: 철퍽 + 마림바로 가볍게 "솔-미 도 미 솔 도~" (O say can you see)
+        this.splat(1.1);
+        const b = 0.06; // 시작
+        [[784, 0], [659, 0.2], [523, 0.28], [659, 0.5], [784, 0.72], [1047, 0.94]]
+          .forEach(([f, t], i) => this.marimba(f, b + t, i === 5 ? 0.3 : 0.24, i === 5 ? 0.9 : 0.45));
+        break;
+      }
       case 'special_fart': // 국기 폭탄: 방귀 "뿌우우웅~뿡" + 질척
         this.fart(1);
         this.splat(1.2, 0.02);
