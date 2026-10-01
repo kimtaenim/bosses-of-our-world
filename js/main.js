@@ -24,6 +24,7 @@ async function main() {
     target: document.getElementById('target'),
     bar: document.getElementById('bar-fill'),
     best: document.getElementById('best'),
+    total: document.getElementById('total'),
     banner: document.getElementById('banner'),
   };
   const canvas = document.getElementById('game');

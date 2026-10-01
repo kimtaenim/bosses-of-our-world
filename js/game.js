@@ -59,7 +59,9 @@ export class Game {
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
     this.lastMatch = 0;
     this.lastTs = 0;
-    this.best = loadProgress().best;
+    const saved = loadProgress();
+    this.best = saved.best;
+    this.total = saved.total; // 전체 점수 (모든 판 합계)
   }
 
   // firstLevel을 주지 않으면 저장된 판·점수에서 이어한다
@@ -147,7 +149,7 @@ export class Game {
     this.score = score;
     this.shownScore = score;
     this.best = Math.max(this.best, level);
-    saveProgress(level, this.best, score);
+    this.save();
     this.board = new Board(this.cfg.COLS, this.cfg.ROWS, this.levelTypes(level));
     this.board.fillInitial();
     this.updateHud();
@@ -170,6 +172,10 @@ export class Game {
   }
 
   target() { return targetScore(this.level); }
+
+  save() {
+    saveProgress({ reached: this.level, best: this.best, score: this.score, total: this.total });
+  }
 
   // ---------- 입력 ----------
 
@@ -699,7 +705,8 @@ export class Game {
   addScore(count, cascade, cells = null) {
     const pts = Math.floor(count * 10 * Math.pow(1.5, cascade - 1));
     this.score += pts;
-    saveProgress(this.level, this.best, this.score); // 나갔다 와도 이어하기
+    this.total += pts;
+    this.save(); // 나갔다 와도 이어하기
     this.updateHud();
     if (cells && cells.length) {
       let sx = 0, sy = 0;
@@ -807,6 +814,8 @@ export class Game {
 
   renderScore() {
     this.hud.score.textContent = Math.round(this.shownScore).toLocaleString();
+    // 전체 점수도 판 점수와 같이 올라가게 (아직 안 올라간 만큼 빼서 표시)
+    if (this.hud.total) this.hud.total.textContent = Math.round(this.total - (this.score - this.shownScore)).toLocaleString();
   }
 
   // 표시 점수를 실제 점수로 빠르게 따라가게
