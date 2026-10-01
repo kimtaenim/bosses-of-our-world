@@ -123,6 +123,6 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 | `js/tween.js` | 게임 루프 기반 트윈·타이머 |
 | `js/input.js` | 드래그·탭-탭 입력 |
 | `js/audio.js` | 사운드 슬롯 |
-| `sw.js`, `manifest.json`, `icons/` | PWA |
+| `sw.js`, `manifest.json`, `icons/` | PWA (아이콘·파비콘은 `node tools/make-icons.mjs <얼굴.png>`로 생성) |
 
 로직 테스트: `node --test tests/*.test.mjs`
