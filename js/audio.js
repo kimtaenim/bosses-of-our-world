@@ -7,7 +7,7 @@
 //     anthem 성조기: 마림바 "솔미도미솔도" (성조기여 영원하라 첫 구절)
 //     fart 인공기·러시아 국기 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
 //     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / boom 그 밖(지구)
-//     arrow 화살표 슈우웅 / 시한폭탄은 rocket 콰광
+//     dove 비둘기 푸드덕 구구 / 시한폭탄은 rocket 콰광
 //   beep    시한폭탄 카운트다운 삑
 //   clear   판 클리어 (철퍼덕 와르르)
 
@@ -18,7 +18,7 @@ const MIN_GAP = { beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 4
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
-export const SPECIAL_KIND = { globe: 'boom', timebomb: 'rocket', arrow: 'arrow', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
+export const SPECIAL_KIND = { globe: 'boom', timebomb: 'rocket', dove: 'dove', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -621,11 +621,15 @@ export class Sound {
         this.tone('sine', 1568, 1568, 0.25, 0.27, 0.13);
         this.tone('sine', 2093, 2093, 0.3, 0.16, 0.22);
         break;
-      case 'special_arrow': // 화살표: "슈우웅~" 가로로 날아가는 바람 + 끝에 "탁"
-        this.noise(0.35, 0.7, 600, 0, 'bandpass', 5000, 2);
-        this.tone('sawtooth', 300, 1200, 0.25, 0.12);
-        this.tone('triangle', 900, 300, 0.06, 0.35, 0.3);
+      case 'special_dove': { // 평화의 비둘기: "푸드덕푸드덕" 날갯짓 + "구구~"
+        for (let i = 0; i < 6; i++) this.noise(0.06, 0.45, 900 + Math.random() * 500, i * 0.075, 'bandpass', 400, 1.2);
+        const coo = (st, f) => {
+          this.vowel(st, 0.16, f, f * 0.9, [[400, 1], [800, 0.4]], 1.4);
+          this.vowel(st + 0.17, 0.28, f * 0.92, f * 0.8, [[380, 1], [760, 0.35]], 1.4);
+        };
+        coo(0.45, 210);
         break;
+      }
       case 'beep': // 시한폭탄 카운트다운 "삑" (semitone 7이면 0초: 더 높게)
         this.tone('square', 1320 * k, 1320 * k, 0.07, 0.16);
         break;

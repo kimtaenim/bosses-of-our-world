@@ -58,7 +58,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
-    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('globe' | 'timebomb' | 'arrow')
+    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('globe' | 'timebomb' | 'dove')
     this.lastMatch = 0;
     this.lastTs = 0;
     const saved = loadProgress();
@@ -633,9 +633,9 @@ export class Game {
   rollItems(m, cascade, swapCells) {
     // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 지구
     if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('globe');
-    // 11판부터 시한폭탄, 21판부터 화살표: 지울 때마다 10%
+    // 11판부터 시한폭탄, 21판부터 평화의 비둘기: 지울 때마다 10%
     if (this.level >= 11 && Math.random() < 0.1) this.pendingItems.push('timebomb');
-    if (this.level >= 21 && Math.random() < 0.1) this.pendingItems.push('arrow');
+    if (this.level >= 21 && Math.random() < 0.1) this.pendingItems.push('dove');
   }
 
   // 시한폭탄: 숫자가 바뀔 때 삑, 0이 지나면 (다른 연출이 끝난 뒤) 폭발

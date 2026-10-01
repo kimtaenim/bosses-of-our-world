@@ -356,24 +356,76 @@ export const EMBLEMS = {
     });
   },
 
-  // 화살표: 주황 바탕에 하얀 양방향 가로 화살표
-  arrow(ctx, T, color) {
-    iconBg(ctx, T, color, (ink) => {
-      const y = T / 2, x0 = T * 0.16, x1 = T * 0.84, h = T * 0.09, head = T * 0.17;
+  // 평화의 비둘기: 하늘색 바탕에 하얀 비둘기가 초록 올리브 가지를 물고 있음
+  dove(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      const P = (x, y) => [T * x, T * y];
+      // 타일을 꽉 채우게 1.15배 (올리브 가지가 잘리지 않게 살짝 왼쪽으로)
+      ctx.translate(T * 0.44, T * 0.5);
+      ctx.scale(1.15, 1.15);
+      ctx.translate(-T / 2, -T / 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = 'rgba(40,70,110,0.55)';
+      ctx.lineWidth = T * 0.012;
+      ctx.lineJoin = 'round';
+      // 몸통 + 꼬리 (오른쪽을 보고 날아가는 모습)
       ctx.beginPath();
-      ctx.moveTo(x0, y);
-      ctx.lineTo(x0 + head, y - head);
-      ctx.lineTo(x0 + head, y - h);
-      ctx.lineTo(x1 - head, y - h);
-      ctx.lineTo(x1 - head, y - head);
-      ctx.lineTo(x1, y);
-      ctx.lineTo(x1 - head, y + head);
-      ctx.lineTo(x1 - head, y + h);
-      ctx.lineTo(x0 + head, y + h);
-      ctx.lineTo(x0 + head, y + head);
+      ctx.moveTo(...P(0.68, 0.40));                                   // 머리 뒤
+      ctx.bezierCurveTo(...P(0.62, 0.58), ...P(0.45, 0.66), ...P(0.30, 0.64));
+      ctx.lineTo(...P(0.12, 0.74));                                   // 꼬리 끝 아래
+      ctx.lineTo(...P(0.16, 0.62));
+      ctx.lineTo(...P(0.10, 0.56));                                   // 꼬리 끝 위
+      ctx.bezierCurveTo(...P(0.28, 0.54), ...P(0.40, 0.50), ...P(0.50, 0.44));
       ctx.closePath();
-      ctx.fillStyle = ink;
       ctx.fill();
+      ctx.stroke();
+      // 위로 든 날개
+      ctx.beginPath();
+      ctx.moveTo(...P(0.50, 0.46));
+      ctx.bezierCurveTo(...P(0.40, 0.30), ...P(0.28, 0.20), ...P(0.18, 0.18));
+      ctx.bezierCurveTo(...P(0.26, 0.26), ...P(0.24, 0.30), ...P(0.30, 0.34));
+      ctx.bezierCurveTo(...P(0.26, 0.36), ...P(0.30, 0.42), ...P(0.38, 0.44));
+      ctx.bezierCurveTo(...P(0.36, 0.48), ...P(0.44, 0.52), ...P(0.56, 0.50));
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // 머리
+      ctx.beginPath();
+      ctx.arc(...P(0.70, 0.36), T * 0.085, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowColor = 'transparent';
+      // 부리
+      ctx.fillStyle = '#F2A33A';
+      ctx.beginPath();
+      ctx.moveTo(...P(0.77, 0.33));
+      ctx.lineTo(...P(0.86, 0.36));
+      ctx.lineTo(...P(0.77, 0.39));
+      ctx.closePath();
+      ctx.fill();
+      // 눈
+      ctx.fillStyle = '#1d2747';
+      ctx.beginPath();
+      ctx.arc(...P(0.72, 0.34), T * 0.016, 0, Math.PI * 2);
+      ctx.fill();
+      // 입에 문 초록 올리브 가지
+      ctx.strokeStyle = '#3d8b37';
+      ctx.lineWidth = T * 0.028;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(...P(0.82, 0.37));
+      ctx.quadraticCurveTo(...P(0.88, 0.46), ...P(0.86, 0.56));
+      ctx.stroke();
+      ctx.fillStyle = '#56b04a';
+      for (const [x, y, a] of [[0.85, 0.42, -0.6], [0.89, 0.47, 0.5], [0.84, 0.50, -0.7], [0.88, 0.55, 0.6], [0.86, 0.58, 0]]) {
+        ctx.save();
+        ctx.translate(...P(x, y));
+        ctx.rotate(a);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, T * 0.052, T * 0.024, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     });
   },
 };
