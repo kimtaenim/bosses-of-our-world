@@ -5,7 +5,7 @@ import { Sprites } from './sprites.js';
 import { targetScore } from '../config.js';
 import { loadProgress, saveProgress } from './storage.js';
 import { EFFECTS } from './effects.js';
-import { FUSE_MS } from './items.js';
+import { FUSE_MS, SHAKE_MS } from './items.js';
 import { Sound } from './audio.js';
 import { Faces, PRIO } from './faces.js';
 
@@ -623,6 +623,7 @@ export class Game {
       const idx = this.chars.findIndex((ch) => ch.item === kind);
       if (idx < 0) continue;
       Object.assign(f.tile, { type: idx, special: true, item: kind });
+      // 시한폭탄: 떨어지는 시간(0.6초) 뒤부터 카운트다운
       if (kind === 'timebomb') { f.tile.fuse = this.tw.time + FUSE_MS + 600; f.tile.shownDigit = -1; }
     }
     this.pendingItems.length = 0;
@@ -659,7 +660,8 @@ export class Game {
   }
 
   fuseDigit(t) {
-    return Math.max(0, Math.min(5, Math.ceil((t.fuse - this.tw.time) / 1000) - 1));
+    // 5·4·3·2·1을 1초씩, 마지막 SHAKE_MS 동안 0 (부르르)
+    return Math.max(0, Math.min(5, Math.ceil((t.fuse - SHAKE_MS - this.tw.time) / 1000)));
   }
 
   async resolveStep(m, cascade, swapCells) {
@@ -1050,7 +1052,7 @@ export class Game {
     let ox = t.jx + (t.hx || 0) + t.ox;
     // 시한폭탄이 0이면 부르르
     const fuse = t.item === 'timebomb' ? this.fuseDigit(t) : -1;
-    if (fuse === 0) ox += (Math.random() * 2 - 1) * 3;
+    if (fuse === 0) ox += (Math.random() * 2 - 1) * 5;
     let oy = (t.hy || 0) + t.oy;
     if (selected) ox += (Math.random() * 2 - 1) * 0.9 * amp;
     // 평소 숨쉬듯 살짝 들썩
