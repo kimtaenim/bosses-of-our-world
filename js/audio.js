@@ -621,7 +621,7 @@ export class Sound {
         this.tone('sine', 1568, 1568, 0.25, 0.27, 0.13);
         this.tone('sine', 2093, 2093, 0.3, 0.16, 0.22);
         break;
-      case 'special_drone': { // 드론 폭탄: "위이이잉~" 프로펠러가 내려오다가 "쾅!"
+      case 'special_drone': { // 드론: "위이이잉~" 프로펠러가 내려오다가 "쾅!"
         const ctx = this.ctx;
         const t = this.t0;
         const o = ctx.createOscillator();

@@ -632,7 +632,7 @@ export class Game {
 
   // 지울 때마다 아이템이 생길지 정한다
   rollItems(m, cascade, swapCells) {
-    // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 드론 폭탄
+    // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 드론
     if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('drone');
     // 11판부터 시한폭탄, 21판부터 비둘기 민병대: 지울 때마다 10%
     if (this.level >= 11 && Math.random() < 0.1) this.pendingItems.push('timebomb');
