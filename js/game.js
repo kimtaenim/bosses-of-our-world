@@ -58,7 +58,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
-    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('globe' | 'timebomb' | 'dove')
+    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('drone' | 'timebomb' | 'dove')
     this.lastMatch = 0;
     this.lastTs = 0;
     const saved = loadProgress();
@@ -632,9 +632,9 @@ export class Game {
 
   // 지울 때마다 아이템이 생길지 정한다
   rollItems(m, cascade, swapCells) {
-    // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 지구
-    if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('globe');
-    // 11판부터 시한폭탄, 21판부터 평화의 비둘기: 지울 때마다 10%
+    // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 드론 폭탄
+    if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('drone');
+    // 11판부터 시한폭탄, 21판부터 비둘기 민병대: 지울 때마다 10%
     if (this.level >= 11 && Math.random() < 0.1) this.pendingItems.push('timebomb');
     if (this.level >= 21 && Math.random() < 0.1) this.pendingItems.push('dove');
   }

@@ -133,7 +133,7 @@ const xblast = {
 };
 
 const dove = {
-  // 평화의 비둘기: 세로 한 열 전체. 자기 위치에서 위아래로 25ms 시차, 하얀 빛줄기 + 깃털
+  // 비둘기 민병대: 세로 한 열 전체. 자기 위치에서 위아래로 25ms 시차, 하얀 빛줄기 + 깃털 + 탄피
   area: column.area,
   play(game, r, c, rows) {
     const x = game.cx(c), y = game.cy(r);
@@ -141,7 +141,7 @@ const dove = {
     game.fx.vbeam(x, y, 0, game.BH, game.T * 0.95, sweep / 0.7);
     game.fx.ring(x, y, 6, game.STEP * 1.4, 240, 8, '255,255,255');
     game.fx.burst(x, y, '#ffffff', 22, 1.3);
-    game.fx.burst(x, y, '#7cc96b', 8, 1.0);
+    game.fx.burst(x, y, '#d9a832', 10, 1.1); // 탄피
   },
 };
 
