@@ -37,6 +37,7 @@ async function main() {
   const on = await askSound(params.get('sound'), !game.sound.muted);
   game.sound.setMuted(!on);
   renderMute();
+  await game.sound.ready();
   await game.init(startLevel);
   window.__game = game; // 디버그용
 }

@@ -1,6 +1,6 @@
 // 효과음. assets/sounds/<이름>.mp3가 있으면 그 파일을, 없으면 Web Audio로 합성한다.
 //   match   매치(모든 인물 공통): 점액질 "철퍼덕" 4종 돌려가며
-//   land    타일이 내려앉을 때: 마림바 "또르르" (연달아 앉으면 음이 계단처럼 올라감)
+//   land    타일이 내려앉을 때: 구슬 굴러가는 "또르르" (음 없이 똑딱)
 //   miss    잘못 옮겼을 때: "아~ 오"
 //   chain   연쇄: 반음씩 올라가는 카주 (semitone 인자)
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
@@ -11,10 +11,8 @@
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 32 };
+const MIN_GAP = { miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
 
-// 마림바 음계 (C 메이저 펜타토닉, 두 옥타브 반)
-const MARIMBA = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760, 2093, 2349];
 
 // 특수 타일 그림(emblem) → 효과음 종류
 export const SPECIAL_KIND = { us: 'fart', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
@@ -85,6 +83,12 @@ export class Sound {
     this.waking = false;
     if (old && old.state !== 'closed') old.close().catch(() => {});
     this.unlock();
+  }
+
+  // 켠 직후 오디오가 실제로 돌기 시작할 때까지 기다림 (최대 0.4초). 판 시작 소리를 놓치지 않게.
+  ready() {
+    if (!this.ctx || this.muted) return Promise.resolve();
+    return Promise.race([this.resume(), new Promise((r) => setTimeout(r, 400))]);
   }
 
   resume() {
@@ -416,22 +420,23 @@ export class Sound {
     for (const x of [o, lfo]) { x.start(t); x.stop(t + dur + 0.03); }
   }
 
-  // 마림바 한 음: 기음 + 4배음(나무 건반 특유의 "통") + 짧은 타격음
-  marimba(f, start = 0, vol = 0.22) {
+  // 구슬 똑딱: 아주 짧은 나무 타격음 (멜로디가 들리지 않게 음높이를 무작위로)
+  tick(start = 0, vol = 0.3) {
     const ctx = this.ctx;
     const t = this.t0 + start;
-    for (const [m, v, dur] of [[1, 1, 0.45], [3.93, 0.28, 0.12], [9.2, 0.08, 0.04]]) {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.value = f * m;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol * v, t + 0.003);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g).connect(this.gain);
-      o.start(t);
-      o.stop(t + dur + 0.02);
-    }
+    const f = 1700 + Math.random() * 900;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.exponentialRampToValueAtTime(f * 0.7, t + 0.025);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+    o.connect(g).connect(this.gain);
+    o.start(t);
+    o.stop(t + 0.05);
+    this.noise(0.015, vol * 0.6, 3500 + Math.random() * 1500, start, 'bandpass', 3000, 1.5);
   }
 
   // 사람 목소리 흉내: 톱니파 성대 + 모음 포먼트(대역 필터 3개). formants: [[주파수, 세기], ...]
@@ -473,13 +478,9 @@ export class Sound {
       case 'match': // 점액질 철퍼덕 (모든 인물 공통)
         this.splat(1);
         break;
-      case 'land': { // 마림바 "또르르": 0.25초 안에 이어 앉으면 다음 음, 쉬었다 오면 처음부터
-        const now = this.ctx.currentTime;
-        this.roll = now - (this.rollAt || 0) > 0.25 ? 0 : (this.roll || 0) + 1;
-        this.rollAt = now;
-        this.marimba(MARIMBA[this.roll % MARIMBA.length]);
+      case 'land': // "또르르": 음 없이 구슬 굴러가듯 짧은 나무 똑딱 (높낮이는 살짝만 흔들림)
+        this.tick();
         break;
-      }
       case 'miss': { // 헛스왑: 실망한 "아~ 오" (높은 "아" → 낮게 처지는 "오")
         const p = 0.95 + Math.random() * 0.1;
         this.vowel(0, 0.2, 290 * p, 300 * p, [[850, 1], [1250, 0.6], [2600, 0.25]], 1.6);
