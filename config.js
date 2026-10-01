@@ -11,9 +11,9 @@ export const CONFIG = {
   TILE_SHAPE: 'square', // 'square'(둥근 사각형) 또는 'circle'
   BASE_WIDTH: 360,
 
-  // 판별 목표 점수. 배열 이후 판은 직전 값 × TARGET_GROWTH (소수점 버림)
-  TARGET_SCORES: [1500, 2500, 4000, 6000],
-  TARGET_GROWTH: 1.3,
+  // 판별 목표 점수: 1판 TARGET_BASE, 이후 판마다 TARGET_STEP씩 증가
+  TARGET_BASE: 1500,
+  TARGET_STEP: 250,
 
   // 입력이 없을 때 힌트까지 대기 시간
   HINT_DELAY_MS: 2000,
@@ -46,9 +46,5 @@ export const CONFIG = {
 
 // 판 번호(1부터) → 목표 점수
 export function targetScore(level) {
-  const list = CONFIG.TARGET_SCORES;
-  if (level <= list.length) return list[level - 1];
-  let v = list[list.length - 1];
-  for (let i = list.length; i < level; i++) v = Math.floor(v * CONFIG.TARGET_GROWTH);
-  return v;
+  return CONFIG.TARGET_BASE + CONFIG.TARGET_STEP * (Math.max(1, level) - 1);
 }

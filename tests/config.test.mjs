@@ -3,11 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { targetScore } from '../config.js';
 
-test('target scores follow the config array, then ×1.3 floored', () => {
-  assert.deepEqual([1, 2, 3, 4].map(targetScore), [1500, 2500, 4000, 6000]);
-  assert.equal(targetScore(5), 7800);
-  assert.equal(targetScore(6), 10140);
-  assert.equal(targetScore(7), Math.floor(10140 * 1.3));
+test('target scores start at base and grow by a fixed step', () => {
+  assert.deepEqual([1, 2, 3, 4, 5].map(targetScore), [1500, 1750, 2000, 2250, 2500]);
+  assert.equal(targetScore(20), 1500 + 250 * 19);
 });
 
 test('characters.json levels reference known ids', () => {

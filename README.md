@@ -34,7 +34,7 @@ npx http-server -c-1 .     # 또는 python3 -m http.server
 
 - `config.js`
   - `JUICE`: 연출 전체 배율. 0이면 히트스톱·파티클·흔들림·스쿼시·오버슈트·진동 전부 꺼짐.
-  - `TARGET_SCORES`: 판별 목표 점수 `[1500, 2500, 4000, 6000]`, 이후는 `TARGET_GROWTH`(1.3)배씩 (소수점 버림).
+  - `TARGET_BASE` / `TARGET_STEP`: 판별 목표 점수. 1판 1500점, 판마다 250점씩 증가 (1500, 1750, 2000 ...).
   - `HINT_DELAY_MS`, `FALL_GRAVITY`, `SOUND_ENABLED`, `SOUNDS`, `USE_ALT_COLORS`.
 - `characters.json`
   - `characters`: id, 표시명, 그룹, 배경색, 이니셜, 얼굴 이미지, 특수타일 이미지, 특수타일 플레이스홀더 글자.
