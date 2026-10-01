@@ -191,7 +191,7 @@ export class Game {
     if (left !== this.shownLeft && this.hud.timer) {
       this.shownLeft = left;
       // 시간 제한이 아니라 '지금 깨면 받는 보너스 점수'로 보여준다
-      this.hud.timer.textContent = left > 0 ? `보너스 +${(left * this.cfg.TIME_BONUS_PER_SEC).toLocaleString()}` : '';
+      this.hud.timer.textContent = left > 0 ? `보너스 +${(left * this.bonusPerSec()).toLocaleString()}` : '';
       this.hud.timer.classList.toggle('low', left > 0 && left <= 10);
     }
     const sec = Math.floor(this.elapsed() / 1000);
@@ -203,6 +203,11 @@ export class Game {
   // 타임 보너스로 받을 수 있는 남은 초
   bonusLeft() {
     return Math.max(0, Math.ceil(this.bonusSec() - this.elapsed() / 1000));
+  }
+
+  // 1초당 보너스 점수: 판이 올라갈수록 커짐
+  bonusPerSec() {
+    return (this.cfg.TIME_BONUS_PER_SEC || 10) + (this.cfg.TIME_BONUS_STEP || 0) * (this.level - 1);
   }
 
   // 이 판의 보너스 시간(초): 인물 수가 늘면 길어짐
@@ -451,8 +456,8 @@ export class Game {
     this.clearHint();
     this.vibrate([30, 50, 30]);
     this.sound.play('clear');
-    // 타임 보너스: 빨리 깰수록 남은 초 × TIME_BONUS_PER_SEC
-    const bonus = this.bonusLeft() * this.cfg.TIME_BONUS_PER_SEC;
+    // 타임 보너스: 빨리 깰수록 남은 초 × 1초당 점수 (판이 높을수록 큼)
+    const bonus = this.bonusLeft() * this.bonusPerSec();
     if (bonus > 0) {
       this.addTotal(bonus);
       this.save();
