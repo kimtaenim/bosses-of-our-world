@@ -76,7 +76,8 @@ function askSound(preset, lastOn) {
   });
 }
 
-// 제목 ↔ 광고 배너 교대: 제목 → 광고1 → 제목 → 광고2 ...
+// 제목 ↔ 광고 배너 교대: 제목 → 광고1 → 제목 → 광고2 → 제목 → 광고1 ...
+// 제목은 TOP_TITLE_MS, 광고는 TOP_AD_MS 동안 (광고는 짧게)
 function rotateTop(config) {
   const ads = config.ADS || [];
   if (!ads.length) return;
@@ -84,14 +85,22 @@ function rotateTop(config) {
   const ad = document.getElementById('ad');
   const text = document.getElementById('ad-text');
   if (!title || !ad || !text) return;
-  let step = 0;
-  setInterval(() => {
-    step++;
-    const showAd = step % 2 === 1;
-    if (showAd) text.textContent = ads[((step - 1) / 2) % ads.length];
-    title.classList.toggle('show', !showAd);
-    ad.classList.toggle('show', showAd);
-  }, Math.max(3000, config.TOP_ROTATE_MS || 20000));
+  const titleMs = Math.max(2000, config.TOP_TITLE_MS || 20000);
+  const adMs = Math.max(2000, config.TOP_AD_MS || 6000);
+  let next = 0; // 다음에 보여줄 광고 번호
+  const showTitle = () => {
+    title.classList.add('show');
+    ad.classList.remove('show');
+    setTimeout(showAd, titleMs);
+  };
+  const showAd = () => {
+    text.textContent = ads[next];
+    next = (next + 1) % ads.length;
+    title.classList.remove('show');
+    ad.classList.add('show');
+    setTimeout(showTitle, adMs);
+  };
+  setTimeout(showAd, titleMs);
 }
 
 main();
