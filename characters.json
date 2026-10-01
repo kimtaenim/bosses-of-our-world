@@ -1,6 +1,6 @@
 {
   "characters": [
-    { "id": "trump", "name": "트럼프",   "group": "politician", "color": "#D62828", "initial": "T", "faceDir": "assets/faces/trump/", "emblem": "us",  "special": "assets/special/trump.png", "specialLabel": "성조기" },
+    { "id": "trump", "name": "트럼프",   "group": "politician", "color": "#D62828", "initial": "T", "faceDir": "assets/faces/trump/", "emblem": "us", "effect": "xblast", "special": "assets/special/trump.png", "specialLabel": "성조기" },
     { "id": "kim",   "name": "김정은",   "group": "politician", "color": "#B2B3B3", "initial": "K", "faceDir": "assets/faces/kim/", "emblem": "nk",    "special": "assets/special/kim.png",   "specialLabel": "인공기" },
     { "id": "putin", "name": "푸틴",     "group": "politician", "color": "#013FBD", "initial": "P", "faceDir": "assets/faces/putin/", "emblem": "ru",  "special": "assets/special/putin.png", "specialLabel": "러시아 국기" },
     { "id": "musk",  "name": "머스크",   "group": "business",   "color": "#7CCBF5", "initial": "M", "faceDir": "assets/faces/musk/", "emblem": "car", "effect": "row",   "special": "assets/special/musk.png",  "specialLabel": "사이버트럭" },

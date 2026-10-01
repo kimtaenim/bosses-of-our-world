@@ -101,8 +101,39 @@ const diagonal = {
   },
 };
 
+const xblast = {
+  // 성조기: X자 대각선 끝까지 + 가운데 3×3 (왕창). 가운데부터 바깥으로 30ms 시차
+  area(r, c, rows, cols) {
+    const seen = new Map();
+    const add = (rr, cc, delay) => {
+      if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) return;
+      const k = rr * cols + cc;
+      if (!seen.has(k) || seen.get(k).delay > delay) seen.set(k, { r: rr, c: cc, delay });
+    };
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) add(r + dr, c + dc, (Math.abs(dr) + Math.abs(dc)) * 20);
+    for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+      for (let k = 1; k < Math.max(rows, cols); k++) add(r + dr * k, c + dc * k, k * 30);
+    }
+    return [...seen.values()];
+  },
+  play(game, r, c, rows, cols, area) {
+    const x = game.cx(c), y = game.cy(r);
+    game.fx.ring(x, y, 6, game.STEP * 3, 300, 8, '255,255,255');
+    game.fx.ring(x, y, 4, game.STEP * 1.6, 200, 12, '230,60,70');
+    // 대각선 네 방향으로 빨강·파랑 번개
+    for (const a of area || []) {
+      if (Math.abs(a.r - r) !== Math.abs(a.c - c) || a.r === r) continue;
+      const k = Math.abs(a.r - r);
+      game.fx.zap(x, y, game.cx(a.c), game.cy(a.r), a.delay, k % 2 ? '235,60,70' : '70,110,235');
+    }
+    game.fx.burst(x, y, '#ffffff', 16, 1.6);
+    game.fx.burst(x, y, '#D62828', 14, 1.3);
+    game.fx.burst(x, y, '#1f4fd1', 14, 1.1);
+  },
+};
+
 export const EFFECTS = {
-  bomb, row, column, sameType, diagonal,
+  bomb, row, column, sameType, diagonal, xblast,
   // 그룹 기본값
   politician: bomb,
   business: row,

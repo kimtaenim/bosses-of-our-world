@@ -91,7 +91,8 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 
 | 인물 | 그림 | 효과 (`effect`, 없으면 `group` 기본값) |
 |---|---|---|
-| 트럼프·김정은·푸틴 | 성조기·인공기·러시아 국기 | 3×3 폭탄 |
+| 트럼프 | 성조기 | X자 대각선 끝까지 + 가운데 3×3 (왕창, 빨강·파랑 번개) |
+| 김정은·푸틴 | 인공기·러시아 국기 | 3×3 폭탄 |
 | 빈 살만 | 금빛 석유 방울 | 3×3 폭탄 |
 | 머스크 | 사이버트럭 | 가로 한 줄 |
 | 베조스 | 우주선 | 세로 한 줄 (로켓 발사) |
@@ -147,7 +148,7 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 |---|---|
 | `js/board.js` | 보드 순수 로직 (생성·매치·낙하·셔플·가능한 수) |
 | `js/game.js` | 턴 진행, 연출 타이밍, 렌더링, HUD |
-| `js/effects.js` | 특수 효과 (bomb, row, column, sameType, diagonal) |
+| `js/effects.js` | 특수 효과 (bomb, row, column, sameType, diagonal, xblast) |
 | `js/emblems.js` | 특수 타일 국기·아이콘 그림 |
 | `js/fx.js` | 파티클·링·빛줄기·연쇄 텍스트·화면 흔들림 |
 | `js/sprites.js` | 타일 스프라이트 (표정별 이미지 / 플레이스홀더 얼굴) |
