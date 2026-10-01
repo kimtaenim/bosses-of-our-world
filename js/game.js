@@ -767,6 +767,23 @@ export class Game {
     ctx.translate(0, T / 2);
     ctx.scale(t.sx, t.sy);
     ctx.drawImage(spr, -T / 2, -T, T, T);
+    // 특수 타일: 빛이 사선으로 훑고 지나감 (1.6초마다)
+    if (t.special && this.J > 0) {
+      const ph = ((ts + t.phase * 400) % 1600) / 1600;
+      if (ph < 0.45) {
+        const x = -T + (ph / 0.45) * T * 2;
+        ctx.save();
+        this.roundRect(-T / 2 + 1, -T + 1, T - 2, T - 2, T * 0.22);
+        ctx.clip();
+        const g = ctx.createLinearGradient(x - T / 2 - 12, -T, x - T / 2 + 12, 0);
+        g.addColorStop(0, 'rgba(255,255,255,0)');
+        g.addColorStop(0.5, 'rgba(255,255,255,0.55)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(-T / 2, -T, T, T);
+        ctx.restore();
+      }
+    }
     if (t.flash > 0) {
       ctx.globalAlpha = t.alpha * t.flash * 0.85;
       ctx.fillStyle = '#ffffff';

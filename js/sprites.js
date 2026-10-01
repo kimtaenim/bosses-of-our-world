@@ -1,3 +1,5 @@
+import { EMBLEMS } from './emblems.js';
+
 // 인물 타일 스프라이트. 표정별 얼굴 이미지가 없으면 코드로 그린 플레이스홀더 얼굴을 쓴다.
 // 스프라이트는 화면 해상도에 맞춰 오프스크린 캔버스로 미리 렌더링해 둔다.
 //
@@ -38,6 +40,39 @@ function cornerColor(img) {
   } catch (_) {
     return null;
   }
+}
+
+// 원화의 단색 배경(모서리에서 이어진 비슷한 색)을 투명하게 만든 캔버스
+function cutout(img) {
+  const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  let im;
+  try { im = ctx.getImageData(0, 0, W, H); } catch (_) { return cv; }
+  const d = im.data;
+  const r0 = d[0], g0 = d[1], b0 = d[2];
+  const HARD = 40, SOFT = 85;
+  const seen = new Uint8Array(W * H);
+  const stack = [0, W - 1, (H - 1) * W, H * W - 1];
+  while (stack.length) {
+    const p = stack.pop();
+    if (seen[p]) continue;
+    seen[p] = 1;
+    const i = p * 4;
+    const e = Math.hypot(d[i] - r0, d[i + 1] - g0, d[i + 2] - b0);
+    if (e > SOFT) continue;
+    d[i + 3] = e <= HARD ? 0 : Math.round(255 * (e - HARD) / (SOFT - HARD));
+    if (e > HARD) continue;
+    const x = p % W, y = (p / W) | 0;
+    if (x > 0) stack.push(p - 1);
+    if (x < W - 1) stack.push(p + 1);
+    if (y > 0) stack.push(p - W);
+    if (y < H - 1) stack.push(p + W);
+  }
+  ctx.putImageData(im, 0, 0);
+  return cv;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -211,6 +246,7 @@ export class Sprites {
     this.border = options.border || 0; // 원화 둘레 인물 색 테두리 두께(px). 크게 확대해 배경이 안 보일 때 색 구분용
     this.faceImgs = [];   // [charIdx] → { expr: Image } | null
     this.specialImgs = [];
+    this.faceCutouts = [];
     this.normal = [];     // [charIdx] → { expr: canvas }
     this.special = [];
     this.pxScale = 0;
@@ -219,6 +255,7 @@ export class Sprites {
   async load() {
     this.faceImgs = await Promise.all(this.characters.map((ch) => this.loadFaces(ch)));
     this.specialImgs = await Promise.all(this.characters.map((ch) => loadImage(ch.special)));
+    this.faceCutouts = this.faceImgs.map((imgs) => (imgs ? cutout(imgs.smirk) : null));
   }
 
   async loadFaces(ch) {
@@ -330,49 +367,48 @@ export class Sprites {
     return cv;
   }
 
-  // 특수 타일: 배경색 사각형 + (내용) 글자. 이미지가 있으면 이미지.
+  // 특수 타일: 국기·아이콘 배경 + 오려낸 얼굴 + 금색 테두리.
+  // 배경은 assets/special/<id>.png 가 있으면 그 그림, 없으면 emblems.js의 코드 그림, 그것도 없으면 인물 색.
   renderSpecial(ch, i) {
     const T = this.tile;
     const [cv, ctx] = this.canvas();
-    const color = ch.color;
-    const fg = textColorFor(color);
-    roundRect(ctx, 1, 1, T - 2, T - 2, 10);
-    ctx.fillStyle = color;
-    ctx.fill();
+    ctx.save();
+    this.tilePath(ctx);
+    ctx.clip();
     const img = this.specialImgs[i];
-    if (img) {
-      ctx.save();
-      roundRect(ctx, 1, 1, T - 2, T - 2, 10);
-      ctx.clip();
-      ctx.drawImage(img, 0, 0, T, T);
-      ctx.restore();
+    const emblem = EMBLEMS[ch.emblem];
+    if (img) ctx.drawImage(img, 0, 0, T, T);
+    else if (emblem) emblem(ctx, T, ch.color);
+    else { ctx.fillStyle = ch.color; ctx.fillRect(0, 0, T, T); }
+
+    // 얼굴: 아래쪽 가운데에 살짝 작게 (배경이 둘레로 보이도록)
+    const cut = this.faceCutouts[i];
+    const s = T * 0.84;
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = T * 0.06;
+    ctx.shadowOffsetY = T * 0.02;
+    if (cut) {
+      ctx.drawImage(cut, (T - s) / 2, T - s + T * 0.04, s, s);
     } else {
-      ctx.fillStyle = fg;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const label = ch.specialLabel || ch.initial;
-      let fs = 15;
-      ctx.font = `800 ${fs}px ${FONT}`;
-      while (fs > 8 && ctx.measureText(label).width > T - 10) {
-        fs--;
-        ctx.font = `800 ${fs}px ${FONT}`;
-      }
-      ctx.fillText(label, T / 2, T / 2 + 2);
-      ctx.globalAlpha = 0.75;
-      ctx.font = `800 10px ${FONT}`;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(ch.initial, 6, 5);
-      ctx.globalAlpha = 1;
+      ctx.translate((T - s) / 2, T - s + T * 0.04);
+      ctx.scale(s / 56, s / 56);
+      drawPlaceholderFace(ctx, 'smirk', ch.color, '#ffffff');
     }
-    roundRect(ctx, 2.5, 2.5, T - 5, T - 5, 9);
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.lineWidth = 2.5;
+    ctx.restore();
+
+    // 금색 이중 테두리
+    ctx.save();
+    this.tilePath(ctx);
+    ctx.strokeStyle = '#FFD23F';
+    ctx.lineWidth = T * 0.07;
     ctx.stroke();
-    roundRect(ctx, 5.5, 5.5, T - 11, T - 11, 7);
-    ctx.strokeStyle = 'rgba(255,215,0,0.7)';
-    ctx.lineWidth = 1.5;
+    ctx.translate(T * 0.04, T * 0.04);
+    ctx.scale(0.92, 0.92);
+    this.tilePath(ctx);
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = T * 0.02;
     ctx.stroke();
+    ctx.restore();
     return cv;
   }
 

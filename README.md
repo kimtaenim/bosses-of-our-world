@@ -75,7 +75,10 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 
 ### 특수 타일
 
-`assets/special/<id>.png` — 정사각 PNG. 둥근 사각형으로 잘려 그려진다. 없으면 사각형+글자 플레이스홀더.
+배경(국기·아이콘) 위에 그 인물의 얼굴(smirk 원화에서 배경을 오려낸 것)을 올리고 금색 테두리를 두른다. 판 위에서는 빛이 사선으로 훑고 지나간다.
+
+- 배경은 `characters.json`의 `emblem` 값으로 `js/emblems.js`에서 코드로 그린다: `us` 성조기, `nk` 인공기, `ru` 러시아 국기, `car` 자동차, `smile` 미소 화살표, `sns` SNS 말풍선.
+- `assets/special/<id>.png`(정사각)를 넣으면 코드 그림 대신 그 그림을 배경으로 쓴다.
 
 ## 표정 연출 조절
 
@@ -101,6 +104,7 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 | `js/board.js` | 보드 순수 로직 (생성·매치·낙하·셔플·가능한 수) |
 | `js/game.js` | 턴 진행, 연출 타이밍, 렌더링, HUD |
 | `js/effects.js` | group → 특수 효과 맵 |
+| `js/emblems.js` | 특수 타일 배경(국기·아이콘) 그림 |
 | `js/fx.js` | 파티클·링·빛줄기·연쇄 텍스트·화면 흔들림 |
 | `js/sprites.js` | 타일 스프라이트 (표정별 이미지 / 플레이스홀더 얼굴) |
 | `js/faces.js` | 표정 우선순위, 평소 딴짓, 움찔·쳐다보기 반응, 몸짓 |
