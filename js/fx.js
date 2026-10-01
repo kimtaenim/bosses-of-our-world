@@ -123,7 +123,7 @@ export class FX {
   }
 
   // 번개: (x0,y0) → (x1,y1) 지그재그 선, delay ms 뒤에 번쩍
-  zap(x0, y0, x1, y1, delay = 0) {
+  zap(x0, y0, x1, y1, delay = 0, glow = '170,130,255') {
     if (this.juice <= 0) return;
     const pts = [];
     const n = 7;
@@ -133,7 +133,7 @@ export class FX {
       const nx = -(y1 - y0), ny = x1 - x0, len = Math.hypot(nx, ny) || 1;
       pts.push([x0 + (x1 - x0) * k + (nx / len) * off, y0 + (y1 - y0) * k + (ny / len) * off]);
     }
-    this.zaps.push({ pts, t: -delay / 1000, dur: 0.22 });
+    this.zaps.push({ pts, t: -delay / 1000, dur: 0.22, glow });
   }
 
   // 로켓: (x, y)에서 위로 가속하며 날아가고 불꽃을 뿜음
@@ -221,7 +221,7 @@ export class FX {
       ctx.save();
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      for (const [w, col] of [[7, `rgba(170,130,255,${0.5 * a})`], [2.5, `rgba(255,255,255,${a})`]]) {
+      for (const [w, col] of [[7, `rgba(${z.glow},${0.5 * a})`], [2.5, `rgba(255,255,255,${a})`]]) {
         ctx.beginPath();
         z.pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
         ctx.strokeStyle = col;

@@ -80,14 +80,15 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 
 | 인물 | 그림 | 효과 (`effect`, 없으면 `group` 기본값) |
 |---|---|---|
-| 트럼프·김정은·푸틴·모디 | 성조기·인공기·러시아·인도 국기 | 3×3 폭탄 |
+| 트럼프·김정은·푸틴 | 성조기·인공기·러시아 국기 | 3×3 폭탄 |
+| 빈 살만 | 금빛 석유 방울 | X자 대각선 두 줄 (오일 머니) |
 | 머스크 | 사이버트럭 | 가로 한 줄 |
 | 베조스 | 우주선 | 세로 한 줄 (로켓 발사) |
 | 저커버그 | SNS | 가로 한 줄 |
 | 알트만 | AI 로봇 | 판 위의 같은 인물 전부 (번개) |
 
 - 효과 범위 안의 다른 특수 타일은 부르르 떨다가(0.11초) 연쇄로 터진다.
-- 국기·아이콘은 `characters.json`의 `emblem` 값으로 `js/emblems.js`에서 그린다 (`us`, `nk`, `ru`, `in`, `car`, `rocket`, `sns`, `robot`).
+- 국기·아이콘은 `characters.json`의 `emblem` 값으로 `js/emblems.js`에서 그린다 (`us`, `nk`, `ru`, `oil`, `car`, `rocket`, `sns`, `robot`).
 - `assets/special/<id>.png`(정사각)를 넣으면 배경색 대신 그 그림을 쓴다.
 
 ## 표정 연출 조절
@@ -113,7 +114,7 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 |---|---|
 | `js/board.js` | 보드 순수 로직 (생성·매치·낙하·셔플·가능한 수) |
 | `js/game.js` | 턴 진행, 연출 타이밍, 렌더링, HUD |
-| `js/effects.js` | 특수 효과 (bomb, row, column, sameType) |
+| `js/effects.js` | 특수 효과 (bomb, row, column, sameType, diagonal) |
 | `js/emblems.js` | 특수 타일 국기·아이콘 그림 |
 | `js/fx.js` | 파티클·링·빛줄기·연쇄 텍스트·화면 흔들림 |
 | `js/sprites.js` | 타일 스프라이트 (표정별 이미지 / 플레이스홀더 얼굴) |

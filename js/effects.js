@@ -77,8 +77,32 @@ const sameType = {
   },
 };
 
+const diagonal = {
+  // X자 대각선 두 줄 (오일 머니): 가운데부터 바깥으로 30ms 시차, 금빛 석유가 사방으로 튐
+  area(r, c, rows, cols) {
+    const out = [{ r, c, delay: 0 }];
+    for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+      for (let k = 1; ; k++) {
+        const rr = r + dr * k, cc = c + dc * k;
+        if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) break;
+        out.push({ r: rr, c: cc, delay: k * 30 });
+      }
+    }
+    return out;
+  },
+  play(game, r, c, rows, cols, area) {
+    const x = game.cx(c), y = game.cy(r);
+    game.fx.ring(x, y, 6, game.STEP * 1.8, 260, 8, '255,214,90');
+    for (const a of area || []) {
+      if (a.r === r && a.c === c) continue;
+      game.fx.zap(x, y, game.cx(a.c), game.cy(a.r), a.delay, '255,200,60');
+    }
+    game.fx.burst(x, y, '#FFC93C', 20, 1.4);
+  },
+};
+
 export const EFFECTS = {
-  bomb, row, column, sameType,
+  bomb, row, column, sameType, diagonal,
   // 그룹 기본값
   politician: bomb,
   business: row,

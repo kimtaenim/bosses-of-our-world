@@ -98,6 +98,32 @@ export const EMBLEMS = {
     ctx.arc(cx, cy, R * 0.2, 0, Math.PI * 2);
     ctx.fill();
   },
+  // 석유 방울: 금빛 방울 + 하이라이트
+  oil(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      const cx = T / 2;
+      const g = ctx.createLinearGradient(0, T * 0.15, 0, T * 0.85);
+      g.addColorStop(0, '#FFF1A8');
+      g.addColorStop(0.5, '#FFC93C');
+      g.addColorStop(1, '#B8770F');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(cx, T * 0.14);
+      ctx.bezierCurveTo(cx + T * 0.06, T * 0.3, cx + T * 0.27, T * 0.45, cx + T * 0.27, T * 0.6);
+      ctx.arc(cx, T * 0.6, T * 0.27, 0, Math.PI);
+      ctx.bezierCurveTo(cx - T * 0.27, T * 0.45, cx - T * 0.06, T * 0.3, cx, T * 0.14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.lineWidth = T * 0.025;
+      ctx.strokeStyle = '#6b4204';
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath();
+      ctx.ellipse(cx - T * 0.1, T * 0.6, T * 0.045, T * 0.09, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  },
   // AI 로봇 머리: 안테나 + 네모 머리 + 빛나는 눈 + 입 격자
   robot(ctx, T, color) {
     iconBg(ctx, T, color, (ink, hole) => {
