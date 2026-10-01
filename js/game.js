@@ -5,7 +5,7 @@ import { Sprites } from './sprites.js';
 import { targetScore } from '../config.js';
 import { loadProgress, saveProgress } from './storage.js';
 import { EFFECTS } from './effects.js';
-import { FUSE_MS, SHAKE_MS } from './items.js';
+import { FUSE_MS, SHAKE_MS, FUSE_FROM } from './items.js';
 import { Sound } from './audio.js';
 import { Faces, PRIO } from './faces.js';
 
@@ -269,10 +269,12 @@ export class Game {
   }
 
   // 특수 타일을 탭하면 그 자리에서 바로 발동
-  async detonate(cell) {
+  // force: 시한폭탄은 시간이 됐을 때만 (눌러서는 안 터짐)
+  async detonate(cell, force = false) {
     if (this.busy || !this.board) return;
     const t = this.board.get(cell.r, cell.c);
     if (!t || !t.special) return;
+    if (t.item === 'timebomb' && !force) return;
     this.busy = true;
     this.busySince = this.tw.time;
     this.selected = null;
@@ -653,15 +655,15 @@ export class Game {
       }
       if (now >= t.fuse && !this.busy) {
         const [r, c] = this.board.rc(i);
-        this.detonate({ r, c });
+        this.detonate({ r, c }, true);
         return;
       }
     }
   }
 
   fuseDigit(t) {
-    // 5·4·3·2·1을 1초씩, 마지막 SHAKE_MS 동안 0 (부르르)
-    return Math.max(0, Math.min(5, Math.ceil((t.fuse - SHAKE_MS - this.tw.time) / 1000)));
+    // FUSE_FROM…1을 1초씩, 마지막 SHAKE_MS 동안 0 (부르르)
+    return Math.max(0, Math.min(FUSE_FROM, Math.ceil((t.fuse - SHAKE_MS - this.tw.time) / 1000)));
   }
 
   async resolveStep(m, cascade, swapCells) {
@@ -726,6 +728,7 @@ export class Game {
         if (j === i) { popAt.set(i, tt); continue; }
         const other = board.cells[j];
         if (!other) continue;
+        if (other.item === 'timebomb') continue; // 시한폭탄은 휘말려도 안 터짐 (시간이 돼야만)
         if (other.special) { if (!fired.has(j)) { triggers.push({ i: j, t: tt + CHAIN_DELAY }); chained.push({ tile: other, t: tt }); } }
         else setMin(j, tt);
       }
