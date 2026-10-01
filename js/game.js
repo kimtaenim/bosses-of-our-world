@@ -11,6 +11,18 @@ import { Faces, PRIO } from './faces.js';
 const CHAIN_DELAY = 110; // 연쇄 발동 전 부르르 떠는 시간(ms)
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
+// 판별 인물 수. levels.steps: [{ from: 판, count: 수 }, ...] (from 오름차순)
+// 예전 형식 levels.counts: [판1, 판2, ...] (마지막 값 유지)도 지원
+export function typeCount(levels, level, max) {
+  if (levels && Array.isArray(levels.steps) && levels.steps.length) {
+    let n = levels.steps[0].count;
+    for (const st of levels.steps) if (level >= st.from) n = st.count;
+    return Math.min(n, max);
+  }
+  const counts = (levels && levels.counts) || [max];
+  return Math.min(counts[Math.min(level, counts.length) - 1], max);
+}
+
 export class Game {
   // data: characters.json 내용 (characters, levels, expressions, expressionFallback)
   constructor(canvas, characters, data, config, hud) {
@@ -104,8 +116,7 @@ export class Game {
   // levels.rotateFrom 판부터는 order 전체에서 무작위로 n명 (교대 출연)
   levelTypes(level = this.level) {
     const order = (this.levels && this.levels.order) || this.chars.map((ch) => ch.id);
-    const counts = (this.levels && this.levels.counts) || [order.length];
-    const n = counts[Math.min(level, counts.length) - 1];
+    const n = typeCount(this.levels, level, order.length);
     const rotateFrom = this.levels && this.levels.rotateFrom;
     let ids = order.slice(0, n);
     if (rotateFrom && level >= rotateFrom && order.length > n) {

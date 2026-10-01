@@ -40,8 +40,9 @@ npx http-server -c-1 .     # 또는 python3 -m http.server
   - `HINT_DELAY_MS`, `FALL_GRAVITY`, `SOUND_ENABLED`, `SOUNDS`, `USE_ALT_COLORS`.
 - `characters.json`
   - `characters`: id, 표시명, 그룹, 배경색, 이니셜, 얼굴 이미지, 특수타일 이미지, 특수타일 플레이스홀더 글자.
-  - `levels.order`: 인물이 추가되는 순서. `levels.counts`: 판별 활성 인물 수 (`[4, 5, 6]`, 마지막 값 유지).
-  - `levels.rotateFrom`: 이 판부터는 `order` 전체(8명)에서 무작위로 `counts`명을 뽑는다 (교대 출연).
+  - `levels.order`: 인물 순서 (1판은 앞에서부터 뽑음).
+  - `levels.steps`: 판별 인물 수. `{ "from": 판, "count": 수 }` — 지금은 1~10판 4명, 11~20판 5명, 21판부터 6명.
+  - `levels.rotateFrom`: 이 판부터는 8명 전체에서 무작위로 그 수만큼 뽑는다 (교대 출연, 지금은 2판부터).
 
 ## 원화 교체
 
