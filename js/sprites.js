@@ -223,15 +223,15 @@ export class Sprites {
     this.specialImgs = await Promise.all(this.characters.map((ch) => loadImage(ch.special)));
   }
 
+  // smirk가 없어도 다른 표정이 하나라도 있으면 원화를 쓴다 (임시 기본 얼굴: glance → 처음 찾은 표정)
   async loadFaces(ch) {
     if (!ch.faceDir) return null;
-    const base = await loadImage(`${ch.faceDir}smirk.${this.format}`);
-    if (!base) return null;
-    const imgs = { smirk: base };
-    const rest = this.expressions.filter((e) => e !== 'smirk');
-    const loaded = await Promise.all(rest.map((e) => loadImage(`${ch.faceDir}${e}.${this.format}`)));
-    rest.forEach((e, i) => { if (loaded[i]) imgs[e] = loaded[i]; });
-    imgs.bg = cornerColor(base) || ch.color;
+    const loaded = await Promise.all(this.expressions.map((e) => loadImage(`${ch.faceDir}${e}.${this.format}`)));
+    const imgs = {};
+    this.expressions.forEach((e, i) => { if (loaded[i]) imgs[e] = loaded[i]; });
+    if (!imgs.smirk) imgs.smirk = imgs.glance || imgs.glance_left || Object.values(imgs)[0];
+    if (!imgs.smirk) return null;
+    imgs.bg = cornerColor(imgs.smirk) || ch.color;
     return imgs;
   }
 
