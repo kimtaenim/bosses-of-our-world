@@ -102,7 +102,7 @@ const diagonal = {
 };
 
 const xblast = {
-  // 성조기: X자 대각선 끝까지 + 가운데 3×3 (왕창). 가운데부터 바깥으로 30ms 시차
+  // 성조기: X자 대각선 끝까지 (가운데 칸 + 네 방향). 가운데부터 바깥으로 30ms 시차
   area(r, c, rows, cols) {
     const seen = new Map();
     const add = (rr, cc, delay) => {
@@ -110,7 +110,7 @@ const xblast = {
       const k = rr * cols + cc;
       if (!seen.has(k) || seen.get(k).delay > delay) seen.set(k, { r: rr, c: cc, delay });
     };
-    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) add(r + dr, c + dc, (Math.abs(dr) + Math.abs(dc)) * 20);
+    add(r, c, 0);
     for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
       for (let k = 1; k < Math.max(rows, cols); k++) add(r + dr * k, c + dc * k, k * 30);
     }
