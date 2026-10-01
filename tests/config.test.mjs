@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 import { targetScore } from '../config.js';
 
 test('target scores start at base and grow by a fixed step', () => {
-  assert.deepEqual([1, 2, 3, 4, 5].map(targetScore), [1000, 1250, 1500, 1750, 2000]);
-  assert.equal(targetScore(20), 1000 + 250 * 19);
+  assert.deepEqual([1, 2, 3, 4, 5].map(targetScore), [1000, 1100, 1200, 1300, 1400]);
+  assert.equal(targetScore(20), 1000 + 100 * 19);
 });
 
 test('characters.json levels reference known ids', () => {

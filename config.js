@@ -13,7 +13,7 @@ export const CONFIG = {
 
   // 판별 목표 점수: 1판 TARGET_BASE, 이후 판마다 TARGET_STEP씩 증가
   TARGET_BASE: 1000,
-  TARGET_STEP: 250,
+  TARGET_STEP: 100,
 
   // 입력이 없을 때 힌트까지 대기 시간
   HINT_DELAY_MS: 2000,
