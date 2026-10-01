@@ -36,7 +36,7 @@ npx http-server -c-1 .     # 또는 python3 -m http.server
   - `JUICE`: 연출 전체 배율. 0이면 히트스톱·파티클·흔들림·스쿼시·오버슈트·진동 전부 꺼짐.
   - `TARGET_BASE` / `TARGET_STEP`: 판별 목표 점수. 1판 1000점, 판마다 250점씩 증가 (1000, 1250, 1500 ...).
   - `SPOTLIGHT_DELAY_MS`: 이 시간(10초) 동안 하나도 못 맞추면(헛스왑 포함) 맞출 줄을 금빛 테두리로, 옮길 방향을 화살표로 표시. 맞출 때까지 유지.
-  - `TOP_TITLE_MS` / `TOP_AD_MS` / `ADS`: 제목 자리에 제목(20초) → 광고1(6초) → 제목 → 광고2 → 제목 → 광고1 … 번갈아 표시. `ADS`를 빈 배열로 두면 제목만.
+  - `TOP_TITLE_MS` / `TOP_AD_MS` / `ADS`: 제목 자리에 제목(15초) → 광고1(5초) → 제목 → 광고2 → 제목 → 광고1 … 번갈아 표시. `ADS`를 빈 배열로 두면 제목만.
   - `HINT_DELAY_MS`, `FALL_GRAVITY`, `SOUND_ENABLED`, `SOUNDS`, `USE_ALT_COLORS`.
 - `characters.json`
   - `characters`: id, 표시명, 그룹, 배경색, 이니셜, 얼굴 이미지, 특수타일 이미지, 특수타일 플레이스홀더 글자.
