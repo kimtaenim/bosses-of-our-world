@@ -1,14 +1,18 @@
-// 사운드 4종(match / special / clear / chain).
-// assets/sounds/에 파일이 있으면 그 파일을, 없으면 Web Audio로 합성한 효과음을 쓴다.
-// 합성음은 풍자 톤: 터질 때 질척한 "철퍽" + 인물별 한마디
-//   정치인 → 거창하게 시작했다가 김빠지는 국가원수 팡파레
-//   머스크 → 빵빵 경적, 베조스 → 돈통 "카칭", 저커버그 → 좋아요 알림, 알트만 → 로봇 삑삑
-// chain은 연쇄 단계마다 반음씩 올라가는 카주(semitone 인자).
+// 효과음. assets/sounds/<이름>.mp3가 있으면 그 파일을, 없으면 Web Audio로 합성한다.
+//   match   매치(모든 인물 공통): 질척한 "철퍽" + 작은 팡파레 "빠라밤"
+//   chain   연쇄: 반음씩 올라가는 카주 (semitone 인자)
+//   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
+//     fart 국기 3종(3×3 폭탄) 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
+//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / boom 그 밖
+//   clear   판 클리어
 
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { match: 45, special: 90, bomb: 140, voice: 160, chain: 40, clear: 300 };
+const MIN_GAP = { match: 45, chain: 40, clear: 300, special: 90 };
+
+// 특수 타일 그림(emblem) → 효과음 종류
+export const SPECIAL_KIND = { us: 'fart', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -96,8 +100,12 @@ export class Sound {
     }
   }
 
-  // voice: 터진 인물 { id, group } (합성음에서 인물별 한마디)
-  play(name, semitone = 0, voice = null) {
+  // 특수 타일이 터질 때: 인물의 emblem으로 소리 종류를 고른다
+  special(ch) {
+    this.play(`special_${SPECIAL_KIND[ch && ch.emblem] || 'boom'}`);
+  }
+
+  play(name, semitone = 0) {
     if (!this.enabled || this.muted || !this.ctx) return;
     // 오디오가 잠들어 있으면 깨운 뒤에 재생 (소리를 버리지 않음)
     if (this.ctx.state !== 'running') {
@@ -105,12 +113,13 @@ export class Sound {
       this.waking = true;
       this.resume().then(() => {
         this.waking = false;
-        if (this.ctx && this.ctx.state === 'running') this.play(name, semitone, voice);
+        if (this.ctx && this.ctx.state === 'running') this.play(name, semitone);
       });
       return;
     }
     const now = performance.now();
-    if (now - (this.last[name] || 0) < (MIN_GAP[name] || 0)) return;
+    const gap = MIN_GAP[name] ?? (name.startsWith('special_') ? MIN_GAP.special : 0);
+    if (now - (this.last[name] || 0) < gap) return;
     this.last[name] = now;
     const buf = this.buffers[name];
     if (buf) {
@@ -121,11 +130,6 @@ export class Sound {
       src.start();
     } else if (this.synthOn) {
       try { this.synth(name, semitone); } catch (_) { /* 합성 실패는 무시 */ }
-    }
-    if (voice && this.synthOn && (name === 'match' || name === 'special')) {
-      if (now - (this.last.voice || 0) < MIN_GAP.voice) return;
-      this.last.voice = now;
-      try { this.voice(voice, name === 'special'); } catch (_) { /* 무시 */ }
     }
   }
 
@@ -315,23 +319,107 @@ export class Sound {
     this.noise(0.08, 0.25, 400, delay + dur + 0.04, 'lowpass', 150, 3);
   }
 
+  // 엔진 "부르릉": 톱니파 회전수를 올렸다 내리고, 폭발 간격으로 진폭을 덜덜
+  engine(start, dur, f0, f1, f2, vol = 0.5) {
+    const ctx = this.ctx;
+    const t = this.t0 + start;
+    const o = ctx.createOscillator();
+    const am = ctx.createGain();
+    const lfo = ctx.createOscillator();
+    const lg = ctx.createGain();
+    const f = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    o.type = 'sawtooth';
+    lfo.type = 'square';
+    for (const [osc, k] of [[o, 1], [lfo, 0.5]]) {
+      osc.frequency.setValueAtTime(f0 * k, t);
+      osc.frequency.exponentialRampToValueAtTime(f1 * k, t + dur * 0.45);
+      osc.frequency.exponentialRampToValueAtTime(f2 * k, t + dur);
+    }
+    lg.gain.value = 0.5;
+    am.gain.value = 0.5;
+    lfo.connect(lg).connect(am.gain);
+    f.type = 'lowpass';
+    f.Q.value = 3;
+    f.frequency.setValueAtTime(500, t);
+    f.frequency.exponentialRampToValueAtTime(1400, t + dur * 0.45);
+    f.frequency.exponentialRampToValueAtTime(600, t + dur);
+    this.env(g, t, vol, 0.03, dur);
+    o.connect(f).connect(am).connect(g).connect(this.gain);
+    for (const x of [o, lfo]) { x.start(t); x.stop(t + dur + 0.03); }
+  }
+
   // ---------- 효과음 ----------
 
   synth(name, semitone) {
     const k = Math.pow(2, semitone / 12);
     switch (name) {
-      case 'match': // 철퍽
+      case 'match': // 철퍽 + 작은 팡파레 "빠라밤" (모든 인물 공통)
         this.splat(1);
+        this.brass(523, 0.04, 0.06, 0.12);
+        this.brass(659, 0.1, 0.06, 0.12);
+        this.brass(784, 0.16, 0.2, 0.13);
         break;
       case 'chain': // 연쇄: 반음씩 올라가는 카주 "뿌-뿌우"
         this.kazoo(392 * k, 0, 0.09, 0.5);
         this.kazoo(523 * k, 0.08, 0.16, 0.55);
         break;
-      case 'bomb': // 3×3 폭탄: 방귀 "뿌우우웅~뿡" + 질척
+      case 'special_fart': // 국기 폭탄: 방귀 "뿌우우웅~뿡" + 질척
         this.fart(1);
         this.splat(1.2, 0.02);
         break;
-      case 'special': // 철퍼덕 쾅: 큰 질척임 + 저음 쿵
+      case 'special_car': // 테슬라: "부르릉 부릉~"
+        this.engine(0, 0.32, 38, 95, 60, 0.8);
+        this.engine(0.3, 0.6, 45, 150, 55, 0.95);
+        this.noise(0.5, 0.15, 900, 0.3, 'bandpass', 400, 1); // 배기음
+        break;
+      case 'special_rocket': // 로켓: "콰-광!"
+        this.noise(0.06, 0.8, 6000, 0, 'highpass', 2000, 0.7); // 콰 (찢어지는 소리)
+        this.tone('sine', 160, 40, 0.3, 0.7);
+        this.noise(0.3, 0.6, 3000, 0, 'lowpass', 300, 1);
+        this.tone('sine', 110, 26, 0.9, 0.95, 0.12); // 광 (깊은 폭발)
+        this.noise(1.0, 0.9, 2500, 0.12, 'lowpass', 70, 1.2);
+        for (let i = 0; i < 8; i++) this.noise(0.03, 0.3, 1500 + Math.random() * 3000, 0.25 + Math.random() * 0.5, 'bandpass'); // 파편 타닥
+        break;
+      case 'special_robot': { // 로봇: "삐리비리 삐리리"
+        const seq = [1760, 1175, 2093, 1397, 1760, 988, 2349, 1568, 1976, 1319, 2637];
+        seq.forEach((f, i) => {
+          const s0 = i * 0.042;
+          this.tone('square', f, f * (i % 2 ? 0.8 : 1.25), 0.038, 0.38, s0);
+        });
+        this.tone('sine', 660, 330, 0.18, 0.15, seq.length * 0.042); // 끝에 "뿅"
+        break;
+      }
+      case 'special_oil': { // 석유: "출렁~ 철퍽!"
+        const ctx = this.ctx;
+        const t = this.t0;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        const lfo = ctx.createOscillator();
+        const lg = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(150, t);
+        o.frequency.linearRampToValueAtTime(110, t + 0.4);
+        lfo.frequency.setValueAtTime(5, t); // 출렁 출렁
+        lfo.frequency.linearRampToValueAtTime(9, t + 0.4);
+        lg.gain.value = 60;
+        lfo.connect(lg).connect(o.frequency);
+        this.env(g, t, 0.6, 0.04, 0.42);
+        o.connect(g).connect(this.gain);
+        for (const x of [o, lfo]) { x.start(t); x.stop(t + 0.45); }
+        this.noise(0.4, 0.3, 500, 0, 'lowpass', 1200, 3); // 찰랑이는 물결
+        this.splat(1.6, 0.3); // 철퍽
+        this.splat(1.1, 0.38);
+        [0.62, 0.74, 0.83].forEach((s) => this.tone('sine', 700 + Math.random() * 400, 1400, 0.05, 0.12, s)); // 뚝뚝
+        break;
+      }
+      case 'special_sns': // SNS: 철퍽 + 좋아요 알림 "띠링~"
+        this.splat(1.3);
+        this.tone('sine', 1047, 1047, 0.12, 0.3, 0.05);
+        this.tone('sine', 1568, 1568, 0.25, 0.27, 0.13);
+        this.tone('sine', 2093, 2093, 0.3, 0.16, 0.22);
+        break;
+      case 'special_boom': // 그 밖: 철퍼덕 쾅
         this.splat(1.6);
         this.splat(1.2, 0.07);
         this.tone('sine', 140, 32, 0.55, 0.8);
@@ -343,54 +431,6 @@ export class Sound {
         this.noise(1.2, 0.35, 7000, 1.07, 'highpass', 5000, 0.5);
         for (let i = 0; i < 14; i++) this.noise(0.05, 0.18, 1800 + Math.random() * 1500, 1.15 + i * 0.06 + Math.random() * 0.04);
         this.brass(196, 1.75, 0.45, 0.14, -3);
-        break;
-      default:
-        break;
-    }
-  }
-
-  // 인물별 한마디. big이면 특수 타일 (더 길고 거창하게)
-  voice(v, big) {
-    const id = v.id;
-    const r = 0.97 + Math.random() * 0.06;
-    if (v.group === 'politician') {
-      // 국가원수 팡파레 "빠바바밤~" 하다가 마지막 음이 김빠지듯 축 처짐
-      const key = { trump: 1, kim: 0.94, putin: 0.84, mbs: 1.06 }[id] || 1;
-      const b = 392 * key * r;
-      if (big) {
-        [[1, 0, 0.1], [1, 0.11, 0.1], [1, 0.22, 0.1], [4 / 3, 0.33, 0.22], [5 / 3, 0.56, 0.5]]
-          .forEach(([m, s, d], i, a) => this.brass(b * m, s, d, 0.2, i === a.length - 1 ? -5 : 0));
-        this.noise(0.18, 0.25, 220, 0.33, 'lowpass', 120, 1); // 팀파니 쿵
-      } else {
-        this.brass(b, 0.02, 0.08, 0.16);
-        this.brass(b * 4 / 3, 0.11, 0.08, 0.16);
-        this.brass(b * 5 / 3, 0.2, 0.34, 0.17, -4);
-      }
-      return;
-    }
-    switch (id) {
-      case 'musk': // 빵빵 (두 음 경적)
-        for (let i = 0; i < (big ? 3 : 2); i++) {
-          this.brass(415 * r, i * 0.13, 0.1, 0.12);
-          this.brass(523 * r, i * 0.13, 0.1, 0.1);
-        }
-        break;
-      case 'bezos': // 카칭!
-        this.noise(0.04, 0.4, 3000, 0.02, 'bandpass', 3000, 2);
-        this.tone('triangle', 2637 * r, 2637 * r, 0.35, 0.28, 0.06);
-        this.tone('triangle', 3520 * r, 3520 * r, 0.45, 0.2, 0.1);
-        if (big) [0.25, 0.32, 0.4, 0.47].forEach((s) => this.tone('sine', 4186 * (0.9 + Math.random() * 0.2), 4186, 0.08, 0.08, s));
-        break;
-      case 'zuck': // 좋아요 알림 "띠링"
-        this.tone('sine', 1047 * r, 1047 * r, 0.12, 0.3, 0.02);
-        this.tone('sine', 1568 * r, 1568 * r, 0.25, 0.27, 0.1);
-        if (big) this.tone('sine', 2093 * r, 2093 * r, 0.3, 0.14, 0.2);
-        break;
-      case 'altman': // 로봇 삑삑
-        for (let i = 0; i < (big ? 6 : 3); i++) {
-          const f = [880, 1320, 660, 1760, 990, 1480][i] * r;
-          this.tone('square', f, f, 0.05, 0.2, 0.02 + i * 0.06);
-        }
         break;
       default:
         break;

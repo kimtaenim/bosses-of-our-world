@@ -566,7 +566,7 @@ export class Game {
       for (const t of matchedTiles) t.jx = 0;
     }
 
-    this.stepFeedback([...m.matched], cascade, matchedTiles);
+    this.stepFeedback([...m.matched], cascade);
 
     // 5) 터짐 / 특수 발동 / 특수 생성 연출
     let end = 0;
@@ -594,9 +594,7 @@ export class Game {
         this.fx.flash(0.35);
         this.fx.shake(8);
         this.vibrate(30);
-        // 3×3 폭탄은 방귀, 나머지는 철퍼덕 쾅 + 인물 한마디
-        if (pl.effect === EFFECTS.bomb) this.sound.play('bomb');
-        else this.sound.play('special', 0, this.chars[pl.type]);
+        this.sound.special(this.chars[pl.type]); // 국기 방귀, 테슬라 부르릉, 로켓 콰광 ...
       });
     }
     for (const sp of spawns) {
@@ -630,14 +628,9 @@ export class Game {
     });
   }
 
-  stepFeedback(cells, cascade, tiles = []) {
+  stepFeedback(cells, cascade) {
     this.vibrate(10);
-    // 가장 많이 터진 인물이 한마디 (정치인 팡파레, 기업인 효과음)
-    const count = new Map();
-    for (const t of tiles) if (t) count.set(t.type, (count.get(t.type) || 0) + 1);
-    let top = -1, n = 0;
-    for (const [type, k] of count) if (k > n) { top = type; n = k; }
-    this.sound.play('match', 0, top >= 0 ? this.chars[top] : null);
+    this.sound.play('match');
     if (cascade >= 2) {
       this.sound.play('chain', cascade - 2);
       let sx = 0, sy = 0;

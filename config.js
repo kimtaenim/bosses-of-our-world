@@ -32,12 +32,17 @@ export const CONFIG = {
   SOUND_ENABLED: true,
   SOUND_SYNTH: true,
   SOUND_VOLUME: 0.8,
+  // 파일 이름 = 효과음 이름. 없는 파일은 합성음. special_<종류>: fart car rocket robot oil sns boom
   SOUNDS: {
     match: 'assets/sounds/match.mp3',
-    special: 'assets/sounds/special.mp3',
-    bomb: 'assets/sounds/bomb.mp3', // 3×3 폭탄 (없으면 합성 방귀)
-    clear: 'assets/sounds/clear.mp3',
     chain: 'assets/sounds/chain.mp3', // 연쇄 단계마다 반음씩 피치 상승
+    clear: 'assets/sounds/clear.mp3',
+    special_fart: 'assets/sounds/special_fart.mp3',
+    special_car: 'assets/sounds/special_car.mp3',
+    special_rocket: 'assets/sounds/special_rocket.mp3',
+    special_robot: 'assets/sounds/special_robot.mp3',
+    special_oil: 'assets/sounds/special_oil.mp3',
+    special_sns: 'assets/sounds/special_sns.mp3',
   },
 
   // characters.json 인물에 colorAlt가 있으면 그 색을 쓸지 (색 비교 테스트용). URL에 ?alt=1 을 붙여도 켜짐.
