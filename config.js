@@ -1,7 +1,7 @@
 // 게임 설정. 코드 수정 없이 여기 값만 바꿔서 조절한다.
 export const CONFIG = {
   // 연출 전체 강도 배율. 0이면 모든 연출(히트스톱·파티클·흔들림·스쿼시 등) 꺼짐.
-  JUICE: 1.5,
+  JUICE: 2.0,
 
   // 보드 (논리 px)
   COLS: 5,
@@ -12,13 +12,13 @@ export const CONFIG = {
   BASE_WIDTH: 360,
 
   // 판별 목표 점수: 1판 TARGET_BASE, 이후 판마다 TARGET_STEP씩 증가
-  TARGET_BASE: 1500,
+  TARGET_BASE: 1000,
   TARGET_STEP: 250,
 
   // 입력이 없을 때 힌트까지 대기 시간
   HINT_DELAY_MS: 2000,
   // 이 시간 동안 하나도 못 맞추면(헛스왑 포함) 맞출 곳을 금빛으로 표시
-  SPOTLIGHT_DELAY_MS: 8000,
+  SPOTLIGHT_DELAY_MS: 10000,
 
   // 평소 딴짓(눈 굴리기·곁눈질·깜빡임·깡충) 빈도 배율. 0이면 가만히 있음.
   IDLE_ACTIVITY: 1.8,
