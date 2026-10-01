@@ -5,7 +5,7 @@
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
 //     fart 국기 3종(3×3 폭탄) 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
 //     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / boom 그 밖
-//   clear   판 클리어
+//   clear   판 클리어 (철퍼덕 와르르)
 
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
@@ -55,16 +55,35 @@ export class Sound {
     } catch (_) { /* 무시 */ }
   }
 
-  // 모바일 오디오 잠금 해제: 화면 어디를 눌러도, 앱으로 돌아올 때도 다시 깨운다.
-  // (iOS는 백그라운드에 다녀오면 'interrupted', 안드로이드는 'suspended'로 멈춰 소리가 끊긴다)
+  // 모바일 오디오 잠금 해제: 화면 어디를 눌러도 깨운다.
+  // 다른 앱에 다녀오면 iOS는 오디오가 'interrupted'로 멈추고, resume()해도 소리가 안 나거나
+  // 응답이 없는 경우가 있다. 그래서 돌아오면 표시해 두고, 다음 탭에서 오디오를 새로 만든다.
   bindUnlock() {
     if (typeof document === 'undefined') return;
     const wake = () => this.unlock();
     for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) {
       document.addEventListener(ev, wake, { capture: true, passive: true });
     }
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.resume(); });
+    const away = () => {
+      this.stale = true;
+      if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) away();
+      else this.resume();
+    });
+    window.addEventListener('pagehide', away);
     window.addEventListener('pageshow', () => this.resume());
+  }
+
+  // 오디오를 버리고 새로 만든다 (사용자 탭 안에서만 호출)
+  rebuild() {
+    const old = this.ctx;
+    this.ctx = null;
+    this.noiseBuf = null;
+    this.waking = false;
+    if (old && old.state !== 'closed') old.close().catch(() => {});
+    this.unlock();
   }
 
   resume() {
@@ -76,7 +95,18 @@ export class Sound {
 
   unlock() {
     if (!this.enabled || this.muted) return;
-    if (this.ctx) { this.resume(); return; }
+    if (this.ctx) {
+      // 다른 앱에 다녀왔거나 멈춘 채 안 풀리면 새로 만든다
+      if (this.stale || this.ctx.state === 'closed' || (this.ctx.state !== 'running' && this.ctx.state !== 'suspended')) {
+        this.stale = false;
+        this.rebuild();
+        return;
+      }
+      this.resume();
+      if (this.ctx.state !== 'running') this.poke();
+      return;
+    }
+    this.stale = false;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) { this.enabled = false; return; }
     // iOS: 무음 스위치가 켜져 있어도 게임 소리가 나도록 (Safari 16.4+)
@@ -115,9 +145,13 @@ export class Sound {
     if (this.ctx.state !== 'running') {
       if (this.waking) return;
       this.waking = true;
+      const ctx = this.ctx;
+      // resume()이 끝내 응답하지 않아도(iOS) 소리가 영영 막히지 않게 0.5초 뒤 풀어 준다
+      const giveUp = setTimeout(() => { this.waking = false; }, 500);
       this.resume().then(() => {
+        clearTimeout(giveUp);
         this.waking = false;
-        if (this.ctx && this.ctx.state === 'running') this.play(name, semitone);
+        if (this.ctx === ctx && ctx.state === 'running') this.play(name, semitone);
       });
       return;
     }
@@ -281,45 +315,6 @@ export class Sound {
         this.bubble(d + 0.34, 520 * p, 0.035, 0.18);
         break;
     }
-  }
-
-  // 금관 한 음: 톱니파 + 열리는 로우패스 + 비브라토. bend가 음수면 끝에서 축 처짐.
-  brass(freq, start, dur, vol = 0.22, bend = 0) {
-    const ctx = this.ctx;
-    const t = this.t0 + start;
-    const o = ctx.createOscillator();
-    const o2 = ctx.createOscillator();
-    const f = ctx.createBiquadFilter();
-    const g = ctx.createGain();
-    const vib = ctx.createOscillator();
-    const vg = ctx.createGain();
-    o.type = o2.type = 'sawtooth';
-    o.frequency.setValueAtTime(freq, t);
-    o2.frequency.setValueAtTime(freq * 1.006, t);
-    if (bend) {
-      const end = freq * Math.pow(2, bend / 12);
-      o.frequency.setValueAtTime(freq, t + dur * 0.45);
-      o.frequency.exponentialRampToValueAtTime(end, t + dur);
-      o2.frequency.setValueAtTime(freq * 1.006, t + dur * 0.45);
-      o2.frequency.exponentialRampToValueAtTime(end * 1.01, t + dur);
-    }
-    vib.frequency.value = 6;
-    vg.gain.value = freq * 0.012;
-    vib.connect(vg);
-    vg.connect(o.frequency);
-    vg.connect(o2.frequency);
-    f.type = 'lowpass';
-    f.Q.value = 2;
-    f.frequency.setValueAtTime(freq * 1.2, t);
-    f.frequency.exponentialRampToValueAtTime(freq * 6, t + 0.05);
-    f.frequency.exponentialRampToValueAtTime(freq * 2.5, t + dur);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.025);
-    g.gain.setValueAtTime(vol * 0.8, t + dur * 0.7);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(f); o2.connect(f);
-    f.connect(g).connect(this.gain);
-    for (const x of [o, o2, vib]) { x.start(t); x.stop(t + dur + 0.03); }
   }
 
   // 카주: 톱니파를 좁은 대역으로 → 콧소리 "뿌우"
@@ -518,12 +513,11 @@ export class Sound {
         this.tone('sine', 140, 32, 0.55, 0.8);
         this.noise(0.45, 0.6, 900, 0, 'lowpass', 120, 1);
         break;
-      case 'clear': // 지나치게 거창한 팡파레 + 심벌 + 박수 (끝에 트롬본 한 번 비틀)
-        [[392, 0, 0.12], [392, 0.13, 0.12], [392, 0.26, 0.12], [523, 0.39, 0.5], [659, 0.92, 0.14], [784, 1.07, 0.7]]
-          .forEach(([f, s, d]) => { this.brass(f, s, d, 0.2); this.brass(f / 2, s, d, 0.12); });
-        this.noise(1.2, 0.35, 7000, 1.07, 'highpass', 5000, 0.5);
-        for (let i = 0; i < 14; i++) this.noise(0.05, 0.18, 1800 + Math.random() * 1500, 1.15 + i * 0.06 + Math.random() * 0.04);
-        this.brass(196, 1.75, 0.45, 0.14, -3);
+      case 'clear': // 판 클리어: 팡파레 대신 철퍼덕이 와르르 + 기포 뽀글뽀글 + 마지막 대형 철퍼덕
+        for (let i = 0; i < 6; i++) this.splat(0.9 + i * 0.08, i * 0.11, i % 4);
+        for (let i = 0; i < 14; i++) this.bubble(0.2 + i * 0.04 + Math.random() * 0.03, 300 + Math.random() * 700, 0.03, 0.18);
+        this.splat(1.6, 0.8, 0);
+        this.thump(0.8, 50, 0.8, 0.3);
         break;
       default:
         break;
