@@ -15,8 +15,9 @@ export const CONFIG = {
   TARGET_BASE: 1000,
   TARGET_STEP: 100,
 
-  // 타임 보너스: 판을 TIME_BONUS_SEC초 안에 깨면 남은 1초마다 TIME_BONUS_PER_SEC점 (전체 점수에 더함)
-  TIME_BONUS_SEC: 60,
+  // 타임 보너스: 판을 정해진 초 안에 깨면 남은 1초마다 TIME_BONUS_PER_SEC점 (전체 점수에 더함)
+  // 보너스 시간은 그 판 인물 수에 따라: 4명 60초, 5명 이상 120초 (없는 수는 가장 가까운 아래 값)
+  TIME_BONUS_SEC: { 4: 60, 5: 120 },
   TIME_BONUS_PER_SEC: 10,
 
   // 입력이 없을 때 힌트까지 대기 시간

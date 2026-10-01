@@ -202,7 +202,17 @@ export class Game {
 
   // 타임 보너스로 받을 수 있는 남은 초
   bonusLeft() {
-    return Math.max(0, Math.ceil(this.cfg.TIME_BONUS_SEC - this.elapsed() / 1000));
+    return Math.max(0, Math.ceil(this.bonusSec() - this.elapsed() / 1000));
+  }
+
+  // 이 판의 보너스 시간(초): 인물 수가 늘면 길어짐
+  bonusSec() {
+    const tb = this.cfg.TIME_BONUS_SEC;
+    if (typeof tb === 'number') return tb;
+    const n = this.board ? this.board.types.length : 4;
+    let sec = 60;
+    for (const k of Object.keys(tb).map(Number).sort((a, b) => a - b)) if (n >= k) sec = tb[k];
+    return sec;
   }
 
   addTotal(pts) {
