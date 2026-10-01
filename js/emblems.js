@@ -72,6 +72,70 @@ export const EMBLEMS = {
       ctx.fillRect(0, (i * T) / 3, T, T / 3 + 0.5);
     });
   },
+  // 인도 국기
+  in(ctx, T) {
+    ['#FF9933', '#ffffff', '#138808'].forEach((c, i) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(0, (i * T) / 3, T, T / 3 + 0.5);
+    });
+    // 아쇼카 차크라 (24살 바퀴)
+    const cx = T / 2, cy = T / 2, R = T * 0.13;
+    ctx.strokeStyle = '#000080';
+    ctx.lineWidth = T * 0.022;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = T * 0.008;
+    for (let i = 0; i < 24; i++) {
+      const a = (i * Math.PI) / 12;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#000080';
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  // AI 로봇 머리: 안테나 + 네모 머리 + 빛나는 눈 + 입 격자
+  robot(ctx, T, color) {
+    iconBg(ctx, T, color, (ink, hole) => {
+      const x = T * 0.22, y = T * 0.32, w = T * 0.56, h = T * 0.48, r = T * 0.1;
+      // 안테나
+      ctx.fillRect(T * 0.485, T * 0.16, T * 0.03, T * 0.17);
+      ctx.beginPath();
+      ctx.arc(T * 0.5, T * 0.15, T * 0.055, 0, Math.PI * 2);
+      ctx.fill();
+      // 귀
+      ctx.fillRect(T * 0.14, T * 0.48, T * 0.09, T * 0.16);
+      ctx.fillRect(T * 0.77, T * 0.48, T * 0.09, T * 0.16);
+      // 머리
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      ctx.fill();
+      // 빛나는 눈
+      ctx.shadowColor = '#7DF9FF';
+      ctx.shadowBlur = T * 0.06;
+      ctx.fillStyle = '#7DF9FF';
+      for (const ex of [0.38, 0.62]) {
+        ctx.beginPath();
+        ctx.arc(T * ex, T * 0.5, T * 0.065, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // 입 격자
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = hole;
+      ctx.fillRect(T * 0.34, T * 0.65, T * 0.32, T * 0.07);
+      ctx.fillStyle = ink;
+      for (const mx of [0.42, 0.5, 0.58]) ctx.fillRect(T * mx - T * 0.008, T * 0.65, T * 0.016, T * 0.07);
+    });
+  },
   // 사이버트럭: 각진 삼각 지붕 실루엣
   car(ctx, T, color) {
     iconBg(ctx, T, color, (ink, hole) => {

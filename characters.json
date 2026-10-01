@@ -5,6 +5,8 @@
     { "id": "putin", "name": "푸틴",     "group": "politician", "color": "#013FBD", "initial": "P", "faceDir": "assets/faces/putin/", "emblem": "ru",  "special": "assets/special/putin.png", "specialLabel": "러시아 국기" },
     { "id": "musk",  "name": "머스크",   "group": "business",   "color": "#7CCBF5", "initial": "M", "faceDir": "assets/faces/musk/", "emblem": "car", "effect": "row",   "special": "assets/special/musk.png",  "specialLabel": "사이버트럭" },
     { "id": "bezos", "name": "베조스",   "group": "business",   "color": "#FFD83D", "initial": "B", "faceDir": "assets/faces/bezos/", "emblem": "rocket", "effect": "column",  "special": "assets/special/bezos.png", "specialLabel": "우주선" },
+    { "id": "modi",  "name": "모디",     "group": "politician", "color": "#FF9933", "initial": "N", "faceDir": "assets/faces/modi/", "emblem": "in",    "special": "assets/special/modi.png",  "specialLabel": "인도 국기" },
+    { "id": "altman", "name": "알트만",  "group": "business",   "color": "#9B6BFF", "initial": "A", "faceDir": "assets/faces/altman/", "emblem": "robot", "effect": "sameType", "special": "assets/special/altman.png", "specialLabel": "AI 로봇" },
     { "id": "zuck",  "name": "저커버그", "group": "business",   "color": "#62FBA1", "initial": "Z", "faceDir": "assets/faces/zuck/", "emblem": "sns",   "special": "assets/special/zuck.png",  "specialLabel": "SNS" }
   ],
   "faceFormat": "webp",
@@ -14,7 +16,8 @@
     "shock": "smirk", "scream": "shock", "fall": "shock", "sulk": "smirk", "glance": "smirk", "glance_left": "smirk", "eyeroll": "glance", "blink": "smirk", "nervous": "shock", "squish": "scream", "cheer": "smirk"
   },
   "levels": {
-    "order": ["trump", "kim", "musk", "bezos", "zuck", "putin"],
-    "counts": [4, 5, 6]
+    "order": ["trump", "kim", "musk", "bezos", "zuck", "putin", "altman", "modi"],
+    "counts": [4, 5, 6],
+    "rotateFrom": 3
   }
 }

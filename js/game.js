@@ -99,11 +99,22 @@ export class Game {
   // ---------- 판 ----------
 
   // characters.json levels: order 앞에서부터 counts[판-1]명 (counts 끝 이후는 마지막 값 유지)
+  // levels.rotateFrom 판부터는 order 전체에서 무작위로 n명 (교대 출연)
   levelTypes(level = this.level) {
     const order = (this.levels && this.levels.order) || this.chars.map((ch) => ch.id);
     const counts = (this.levels && this.levels.counts) || [order.length];
     const n = counts[Math.min(level, counts.length) - 1];
-    const types = order.slice(0, n)
+    const rotateFrom = this.levels && this.levels.rotateFrom;
+    let ids = order.slice(0, n);
+    if (rotateFrom && level >= rotateFrom && order.length > n) {
+      const pool = [...order];
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      ids = pool.slice(0, n);
+    }
+    const types = ids
       .map((id) => this.chars.findIndex((ch) => ch.id === id))
       .filter((i) => i >= 0);
     return types.length >= 3 ? types : this.chars.map((_, i) => i);
@@ -448,8 +459,9 @@ export class Game {
       popAt.set(i, t);
       if (!effect) continue;
       const [r, c] = board.rc(i);
-      plays.push({ t, effect, r, c });
-      for (const a of effect.area(r, c, rows, cols)) {
+      const area = effect.area(r, c, rows, cols, board, tile.type);
+      plays.push({ t, effect, r, c, area, type: tile.type });
+      for (const a of area) {
         const j = board.idx(a.r, a.c);
         const tt = t + a.delay;
         if (j === i) { popAt.set(i, tt); continue; }
@@ -511,7 +523,7 @@ export class Game {
     }
     for (const pl of plays) {
       this.tw.after(pl.t - HIT, () => {
-        pl.effect.play(this, pl.r, pl.c, rows, cols);
+        pl.effect.play(this, pl.r, pl.c, rows, cols, pl.area);
         this.reactToSpecial(pl, doomed);
         this.fx.flash(0.35);
         this.fx.shake(8);
@@ -601,7 +613,7 @@ export class Game {
   // doomed: 이번 스텝에 터질 타일 (idx → tile, 이미 그리드에서 빠져 있음)
   reactToSpecial(pl, doomed) {
     const board = this.board;
-    const area = new Set(pl.effect.area(pl.r, pl.c, this.cfg.ROWS, this.cfg.COLS).map((a) => board.idx(a.r, a.c)));
+    const area = new Set(pl.area.map((a) => board.idx(a.r, a.c)));
     for (const i of area) {
       const t = doomed.get(i);
       if (t && t.expr !== 'scream') this.faces.set(t, 'shock', Infinity, PRIO.DOOM);

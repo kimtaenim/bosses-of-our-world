@@ -15,6 +15,7 @@ export class FX {
     this.texts = [];
     this.beams = [];
     this.rockets = [];
+    this.zaps = [];
     this.flashA = 0;   // 화면 전체 흰 번쩍임
     this.shakeAmp = 0;
     this.shakeX = 0;
@@ -121,6 +122,20 @@ export class FX {
     this.beams.push({ vertical: true, vx: x, y: 0, x0: y0, left: top, right: bottom, height: width, dur: dur / 1000, t: 0 });
   }
 
+  // 번개: (x0,y0) → (x1,y1) 지그재그 선, delay ms 뒤에 번쩍
+  zap(x0, y0, x1, y1, delay = 0) {
+    if (this.juice <= 0) return;
+    const pts = [];
+    const n = 7;
+    for (let i = 0; i <= n; i++) {
+      const k = i / n;
+      const off = i === 0 || i === n ? 0 : rand(-10, 10);
+      const nx = -(y1 - y0), ny = x1 - x0, len = Math.hypot(nx, ny) || 1;
+      pts.push([x0 + (x1 - x0) * k + (nx / len) * off, y0 + (y1 - y0) * k + (ny / len) * off]);
+    }
+    this.zaps.push({ pts, t: -delay / 1000, dur: 0.22 });
+  }
+
   // 로켓: (x, y)에서 위로 가속하며 날아가고 불꽃을 뿜음
   rocket(x, y) {
     if (this.juice <= 0) return;
@@ -168,6 +183,8 @@ export class FX {
       }
     }
     this.rockets = this.rockets.filter((rk) => rk.y > -400);
+    for (const z of this.zaps) z.t += s;
+    this.zaps = this.zaps.filter((z) => z.t < z.dur);
     for (const b of this.beams) b.t += s;
     this.beams = this.beams.filter((b) => b.t < b.dur);
 
@@ -197,6 +214,22 @@ export class FX {
     }
 
     for (const rk of this.rockets) this.drawRocket(ctx, rk);
+
+    for (const z of this.zaps) {
+      if (z.t < 0) continue;
+      const a = 1 - z.t / z.dur;
+      ctx.save();
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      for (const [w, col] of [[7, `rgba(170,130,255,${0.5 * a})`], [2.5, `rgba(255,255,255,${a})`]]) {
+        ctx.beginPath();
+        z.pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+        ctx.strokeStyle = col;
+        ctx.lineWidth = w;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
 
     this.drawParticles(ctx);
     this.drawRest(ctx);

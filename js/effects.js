@@ -1,4 +1,5 @@
 // 특수 타일 효과. characters.json에서 인물의 "effect" 값(없으면 "group" 값)으로 고른다.
+//   area(r, c, rows, cols, board, type) 마지막 두 인자는 같은 인물 찾기용
 // 새 효과를 추가하려면 여기에 항목 하나만 추가하면 된다.
 //   area(r, c, rows, cols) → [{ r, c, delay }]  제거할 칸과 발동 시점 기준 터지는 시차(ms)
 //   play(game, r, c, rows, cols)                 발동 순간의 연출
@@ -52,8 +53,32 @@ const column = {
   },
 };
 
+const sameType = {
+  // 같은 인물 전부 (AI가 다 가져감): 가까운 것부터 20ms 시차, 번개가 하나씩 꽂힘
+  area(r, c, rows, cols, board, type) {
+    const out = [];
+    for (let rr = 0; rr < rows; rr++) {
+      for (let cc = 0; cc < cols; cc++) {
+        const t = board.get(rr, cc);
+        if (!t || t.type !== type) continue;
+        const d = Math.abs(rr - r) + Math.abs(cc - c);
+        out.push({ r: rr, c: cc, delay: d * 20 });
+      }
+    }
+    return out;
+  },
+  play(game, r, c, rows, cols, area) {
+    const x = game.cx(c), y = game.cy(r);
+    game.fx.ring(x, y, 6, game.STEP * 1.6, 260, 8, '190,160,255');
+    for (const a of area || []) {
+      if (a.r === r && a.c === c) continue;
+      game.fx.zap(x, y, game.cx(a.c), game.cy(a.r), a.delay);
+    }
+  },
+};
+
 export const EFFECTS = {
-  bomb, row, column,
+  bomb, row, column, sameType,
   // 그룹 기본값
   politician: bomb,
   business: row,
