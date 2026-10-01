@@ -25,14 +25,17 @@
     </div>
     <header id="hud">
       <div class="row">
-        <div id="level-box">판 <span id="level">1</span></div>
+        <div id="level-box">판 <span id="level">1</span> <span id="timer" title="이 시간 안에 깨면 타임 보너스"></span></div>
         <div id="score-box"><span id="score">0</span> <span class="sep">/</span> <span id="target">0</span></div>
       </div>
       <div id="bar"><div id="bar-fill"></div></div>
       <div id="sub-row">
-        <button id="mute" type="button" aria-label="소리 켜기/끄기">🔊</button>
+        <div class="btns">
+          <button id="mute" type="button" aria-label="소리 켜기/끄기">🔊</button>
+          <button id="restart" type="button" aria-label="1판부터 다시">↺ 처음부터</button>
+        </div>
         <div id="total-box">총점 <span id="total">0</span></div>
-        <div id="best-box">최고 판 <span id="best">1</span></div>
+        <div id="best-box"><div>하이스코어 <span id="high">0</span></div><div>최고 판 <span id="best">1</span></div></div>
       </div>
     </header>
     <main id="stage">

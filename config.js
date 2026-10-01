@@ -15,6 +15,10 @@ export const CONFIG = {
   TARGET_BASE: 1000,
   TARGET_STEP: 100,
 
+  // 타임 보너스: 판을 TIME_BONUS_SEC초 안에 깨면 남은 1초마다 TIME_BONUS_PER_SEC점 (전체 점수에 더함)
+  TIME_BONUS_SEC: 60,
+  TIME_BONUS_PER_SEC: 10,
+
   // 입력이 없을 때 힌트까지 대기 시간
   HINT_DELAY_MS: 2000,
   // 이 시간 동안 하나도 못 맞추면(헛스왑 포함) 맞출 곳을 금빛으로 표시

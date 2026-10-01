@@ -25,6 +25,8 @@ async function main() {
     bar: document.getElementById('bar-fill'),
     best: document.getElementById('best'),
     total: document.getElementById('total'),
+    high: document.getElementById('high'),
+    timer: document.getElementById('timer'),
     banner: document.getElementById('banner'),
   };
   const canvas = document.getElementById('game');
@@ -37,6 +39,10 @@ async function main() {
     game.sound.setMuted(!game.sound.muted);
     renderMute();
     if (!game.sound.muted) game.sound.ready().then(() => game.sound.play('match')).catch(() => {}); // 켜졌다는 확인 소리
+  });
+  document.getElementById('restart').addEventListener('click', () => {
+    if (game.busy) return;
+    if (window.confirm('1판부터 다시 할까요?\n총점은 0이 되고, 하이스코어와 최고 판은 남아요.')) game.restart();
   });
   // ?debug=1: 오디오 상태를 화면에 표시 (폰에서 소리 문제 확인용)
   if (params.get('debug') === '1') {

@@ -61,7 +61,10 @@ export class Game {
     this.lastTs = 0;
     const saved = loadProgress();
     this.best = saved.best;
-    this.total = saved.total; // 전체 점수 (모든 판 합계)
+    this.total = saved.total; // 전체 점수 (모든 판 합계, 처음부터 다시 하면 0)
+    this.high = Math.max(saved.high, saved.total); // 하이스코어: 전체 점수 최고 기록
+    this.levelT0 = 0; // 이 판 시작 시각 (게임 시계, 앱이 꺼져 있는 동안은 안 흐름)
+    this.lastSaveSec = -1;
   }
 
   // firstLevel을 주지 않으면 저장된 판·점수에서 이어한다
@@ -83,7 +86,7 @@ export class Game {
       await this.startLevel(firstLevel);
     } else {
       const saved = loadProgress();
-      await this.startLevel(saved.reached, Math.min(saved.score, targetScore(saved.reached) - 1));
+      await this.startLevel(saved.reached, Math.min(saved.score, targetScore(saved.reached) - 1), saved.elapsed);
     }
     this.busy = false;
   }
@@ -143,8 +146,9 @@ export class Game {
 
   // 새 보드를 만들고 위에서 쏟아져 내려오게 한다
   // score: 이어하기일 때 그 판에서 이미 모은 점수
-  async startLevel(level, score = 0) {
+  async startLevel(level, score = 0, elapsed = 0) {
     this.level = level;
+    this.levelT0 = this.tw.time - elapsed;
     this.spot = null;
     this.score = score;
     this.shownScore = score;
@@ -174,7 +178,50 @@ export class Game {
   target() { return targetScore(this.level); }
 
   save() {
-    saveProgress({ reached: this.level, best: this.best, score: this.score, total: this.total });
+    saveProgress({
+      reached: this.level, best: this.best, score: this.score,
+      total: this.total, high: this.high, elapsed: this.elapsed(),
+    });
+  }
+
+  // 타임 보너스 남은 초 표시 (바뀔 때만), 1초마다 경과 시간 저장
+  updateTimer() {
+    if (!this.board) return;
+    const left = this.bonusLeft();
+    if (left !== this.shownLeft && this.hud.timer) {
+      this.shownLeft = left;
+      this.hud.timer.textContent = left > 0 ? `⏱ ${left}` : '';
+      this.hud.timer.classList.toggle('low', left > 0 && left <= 10);
+    }
+    const sec = Math.floor(this.elapsed() / 1000);
+    if (sec !== this.lastSaveSec) { this.lastSaveSec = sec; this.save(); }
+  }
+
+  elapsed() { return Math.max(0, this.tw.time - this.levelT0); }
+
+  // 타임 보너스로 받을 수 있는 남은 초
+  bonusLeft() {
+    return Math.max(0, Math.ceil(this.cfg.TIME_BONUS_SEC - this.elapsed() / 1000));
+  }
+
+  addTotal(pts) {
+    this.total += pts;
+    if (this.total > this.high) this.high = this.total;
+  }
+
+  // 1판부터 다시 (전체 점수는 0으로, 하이스코어와 최고 판은 유지)
+  async restart() {
+    if (this.busy || !this.board) return;
+    this.busy = true;
+    this.busySince = this.tw.time;
+    this.selected = null;
+    this.clearHint();
+    this.total = 0;
+    try {
+      await this.startLevel(1);
+    } finally {
+      this.endTurn();
+    }
   }
 
   // ---------- 입력 ----------
@@ -393,7 +440,15 @@ export class Game {
     this.clearHint();
     this.vibrate([30, 50, 30]);
     this.sound.play('clear');
-    this.showBanner(`판 ${this.level} 클리어!`);
+    // 타임 보너스: 빨리 깰수록 남은 초 × TIME_BONUS_PER_SEC
+    const bonus = this.bonusLeft() * this.cfg.TIME_BONUS_PER_SEC;
+    if (bonus > 0) {
+      this.addTotal(bonus);
+      this.save();
+      this.renderScore();
+      this.updateHud();
+    }
+    this.showBanner(`판 ${this.level} 클리어!`, bonus > 0 ? `⏱ 타임 보너스 +${bonus.toLocaleString()}` : '');
 
     const board = this.board;
     const rows = this.cfg.ROWS, cols = this.cfg.COLS;
@@ -419,10 +474,16 @@ export class Game {
     await this.startLevel(this.level + 1);
   }
 
-  showBanner(text) {
+  showBanner(text, sub = '') {
     const el = this.hud.banner;
     if (!el) return;
     el.textContent = text;
+    if (sub) {
+      const s = document.createElement('div');
+      s.className = 'sub';
+      s.textContent = sub;
+      el.appendChild(s);
+    }
     el.classList.remove('show');
     void el.offsetWidth; // 애니메이션 재시작
     el.classList.add('show');
@@ -705,7 +766,7 @@ export class Game {
   addScore(count, cascade, cells = null) {
     const pts = Math.floor(count * 10 * Math.pow(1.5, cascade - 1));
     this.score += pts;
-    this.total += pts;
+    this.addTotal(pts);
     this.save(); // 나갔다 와도 이어하기
     this.updateHud();
     if (cells && cells.length) {
@@ -808,6 +869,7 @@ export class Game {
     this.hud.level.textContent = this.level;
     this.hud.target.textContent = target.toLocaleString();
     this.hud.best.textContent = this.best;
+    if (this.hud.high) this.hud.high.textContent = this.high.toLocaleString();
     this.hud.bar.style.width = `${Math.min(100, (this.score / target) * 100)}%`;
     this.renderScore();
   }
@@ -815,7 +877,10 @@ export class Game {
   renderScore() {
     this.hud.score.textContent = Math.round(this.shownScore).toLocaleString();
     // 전체 점수도 판 점수와 같이 올라가게 (아직 안 올라간 만큼 빼서 표시)
-    if (this.hud.total) this.hud.total.textContent = Math.round(this.total - (this.score - this.shownScore)).toLocaleString();
+    const shownTotal = Math.round(this.total - (this.score - this.shownScore));
+    if (this.hud.total) this.hud.total.textContent = shownTotal.toLocaleString();
+    // 하이스코어를 갱신 중이면 총점과 같이 올라가고, 아니면 기록 그대로
+    if (this.hud.high) this.hud.high.textContent = (this.high > this.total ? this.high : shownTotal).toLocaleString();
   }
 
   // 표시 점수를 실제 점수로 빠르게 따라가게
@@ -833,6 +898,7 @@ export class Game {
     const dt = this.lastTs ? Math.min(ts - this.lastTs, 50) : 16;
     this.lastTs = ts;
     this.tw.update(dt);
+    this.updateTimer();
     this.fx.update(dt);
     this.faces.update();
     this.watchdog();
