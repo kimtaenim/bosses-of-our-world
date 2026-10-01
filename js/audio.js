@@ -1,5 +1,5 @@
 // 효과음. assets/sounds/<이름>.mp3가 있으면 그 파일을, 없으면 Web Audio로 합성한다.
-//   match   매치(모든 인물 공통): 질척한 "철퍽" + 작은 팡파레 "빠라밤"
+//   match   매치(모든 인물 공통): 점액질 "철퍼덕" 4종 돌려가며 + 작은 팡파레 "빠라밤"
 //   chain   연쇄: 반음씩 올라가는 카주 (semitone 인자)
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
 //     fart 국기 3종(3×3 폭탄) 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
@@ -187,29 +187,96 @@ export class Sound {
     src.stop(t + dur + 0.03);
   }
 
-  // 질척한 "철퍽": 출렁이는 저음 + 아래로 훑는 젖은 노이즈
-  splat(size = 1, delay = 0) {
+  // ---- 점액질 재료 ----
+
+  // 기포 "뽀글": 공명하는 기포가 터질 때처럼 음이 위로 휙 올라가는 짧은 사인
+  bubble(start, f0, dur = 0.03, vol = 0.25) {
     const ctx = this.ctx;
-    const t = this.t0 + delay;
-    const p = 0.85 + Math.random() * 0.35;
-    const dur = 0.16 + 0.12 * size;
+    const t = this.t0 + start;
     const o = ctx.createOscillator();
     const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * 2.6, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(this.gain);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
+
+  // 질척임: 노이즈를 공명 필터로 훑으면서 필터를 출렁출렁 흔든다 (끈적한 "쮸왑")
+  squelch(start, dur, fA, fB, vol, q = 9, wob = 18, type = 'lowpass') {
+    const ctx = this.ctx;
+    const t = this.t0 + start;
+    const src = this.noiseSrc();
+    const f = ctx.createBiquadFilter();
     const lfo = ctx.createOscillator();
     const lg = ctx.createGain();
-    o.type = 'sine';
-    o.frequency.setValueAtTime(380 * p, t);
-    o.frequency.exponentialRampToValueAtTime(55 * p, t + dur);
-    lfo.frequency.value = 22 + Math.random() * 10; // 출렁출렁
-    lg.gain.value = 70 * p;
-    lfo.connect(lg).connect(o.frequency);
-    this.env(g, t, 0.8 * Math.min(size, 1.6), 0.004, dur);
-    o.connect(g).connect(this.gain);
-    o.start(t); lfo.start(t);
-    o.stop(t + dur + 0.03); lfo.stop(t + dur + 0.03);
-    this.noise(dur * 0.9, 0.75 * Math.min(size, 1.6), 2600 * p, delay, 'lowpass', 160, 4);
-    // 끈적하게 떨어지는 물방울 "똑"
-    this.tone('sine', 900 * p, 1500 * p, 0.05, 0.12, delay + dur * 0.8);
+    const g = ctx.createGain();
+    f.type = type;
+    f.Q.value = q;
+    f.frequency.setValueAtTime(fA, t);
+    f.frequency.exponentialRampToValueAtTime(Math.max(40, fB), t + dur);
+    lfo.frequency.setValueAtTime(wob, t);
+    lfo.frequency.linearRampToValueAtTime(wob * 0.5, t + dur);
+    lg.gain.value = Math.min(fA, fB) * 0.6;
+    lfo.connect(lg).connect(f.frequency);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+    g.gain.setValueAtTime(vol * 0.7, t + dur * 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(this.gain);
+    lfo.start(t);
+    src.start(t, Math.random() * 0.5);
+    src.stop(t + dur + 0.03);
+    lfo.stop(t + dur + 0.03);
+  }
+
+  // 덩어리가 떨어지는 저음 "퍽"
+  thump(start, f, vol, dur = 0.12) {
+    this.tone('sine', f * 2.2, f * 0.7, dur, vol, start);
+  }
+
+  // 점액질 "철퍼덕" 4종을 돌려가며 (같은 게 연달아 나오지 않게). variant를 주면 그걸로.
+  splat(size = 1, delay = 0, variant = -1) {
+    let v = variant;
+    if (v < 0) {
+      v = Math.floor(Math.random() * 3);
+      if (v >= (this.lastSplat ?? -1)) v++;
+      this.lastSplat = v;
+    }
+    const z = Math.min(size, 1.6);
+    const p = 0.88 + Math.random() * 0.26;
+    const d = delay;
+    switch (v) {
+      case 0: // "철퍼덕": 퍽 + 아래로 훑는 끈적한 노이즈 + 뒤따르는 기포
+        this.thump(d, 70 * p, 0.7 * z);
+        this.squelch(d, 0.22 + 0.08 * z, 2400 * p, 180, 0.9 * z, 10, 22);
+        this.squelch(d + 0.05, 0.16, 900 * p, 300, 0.4 * z, 14, 30, 'bandpass');
+        for (let i = 0; i < 4; i++) this.bubble(d + 0.1 + i * 0.045 + Math.random() * 0.02, (380 + Math.random() * 300) * p, 0.03, 0.22);
+        break;
+      case 1: // "쮸왑": 빨아들였다 뱉는 와우 (필터가 올라갔다 내려감)
+        this.squelch(d, 0.11, 250 * p, 1800 * p, 0.7 * z, 12, 26);
+        this.squelch(d + 0.1, 0.2 + 0.06 * z, 1800 * p, 200, 0.85 * z, 12, 16);
+        this.thump(d + 0.09, 60 * p, 0.6 * z, 0.14);
+        this.bubble(d + 0.28, 300 * p, 0.05, 0.25);
+        this.bubble(d + 0.36, 460 * p, 0.04, 0.18);
+        break;
+      case 2: // "뿌지직 뽀글뽀글": 기포가 한꺼번에 터지며 질척
+        this.squelch(d, 0.2, 1600 * p, 250, 0.7 * z, 7, 34);
+        this.thump(d, 85 * p, 0.5 * z, 0.1);
+        for (let i = 0; i < 9; i++) this.bubble(d + i * 0.022 + Math.random() * 0.015, (250 + Math.random() * 600) * p, 0.025 + Math.random() * 0.02, 0.2);
+        break;
+      default: // "철벅 철벅": 두 번 철썩 (덩어리가 튀었다 다시 떨어짐)
+        this.thump(d, 65 * p, 0.7 * z);
+        this.squelch(d, 0.14, 2000 * p, 220, 0.85 * z, 9, 20);
+        this.thump(d + 0.16, 80 * p, 0.45 * z, 0.1);
+        this.squelch(d + 0.16, 0.18, 1400 * p, 160, 0.6 * z, 11, 24);
+        this.bubble(d + 0.34, 520 * p, 0.035, 0.18);
+        break;
+    }
   }
 
   // 금관 한 음: 톱니파 + 열리는 로우패스 + 비브라토. bend가 음수면 끝에서 축 처짐.
@@ -356,9 +423,9 @@ export class Sound {
     switch (name) {
       case 'match': // 철퍽 + 작은 팡파레 "빠라밤" (모든 인물 공통)
         this.splat(1);
-        this.brass(523, 0.04, 0.06, 0.12);
-        this.brass(659, 0.1, 0.06, 0.12);
-        this.brass(784, 0.16, 0.2, 0.13);
+        this.brass(523, 0.05, 0.07, 0.2);
+        this.brass(659, 0.12, 0.07, 0.2);
+        this.brass(784, 0.19, 0.22, 0.22);
         break;
       case 'chain': // 연쇄: 반음씩 올라가는 카주 "뿌-뿌우"
         this.kazoo(392 * k, 0, 0.09, 0.5);
