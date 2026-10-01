@@ -5,6 +5,7 @@ import { Sprites } from './sprites.js';
 import { targetScore } from '../config.js';
 import { loadProgress, saveProgress } from './storage.js';
 import { EFFECTS } from './effects.js';
+import { FUSE_MS } from './items.js';
 import { Sound } from './audio.js';
 import { Faces, PRIO } from './faces.js';
 
@@ -57,6 +58,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
+    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('globe' | 'timebomb' | 'arrow')
     this.lastMatch = 0;
     this.lastTs = 0;
     const saved = loadProgress();
@@ -141,13 +143,14 @@ export class Game {
     const types = ids
       .map((id) => this.chars.findIndex((ch) => ch.id === id))
       .filter((i) => i >= 0);
-    return types.length >= 3 ? types : this.chars.map((_, i) => i);
+    return types.length >= 3 ? types : this.chars.map((ch, i) => (ch.item ? -1 : i)).filter((i) => i >= 0);
   }
 
   // 새 보드를 만들고 위에서 쏟아져 내려오게 한다
   // score: 이어하기일 때 그 판에서 이미 모은 점수
   async startLevel(level, score = 0, elapsed = 0) {
     this.level = level;
+    this.pendingItems = [];
     this.levelT0 = this.tw.time - elapsed;
     this.spot = null;
     this.score = score;
@@ -282,7 +285,7 @@ export class Game {
       if (this.score >= this.target()) {
         await this.levelClear();
       } else {
-        await this.animateFalls(this.board.collapse());
+        await this.animateFalls(this.collapse());
         await this.resolve(null); // 떨어진 뒤 생긴 연쇄 처리 (+ 둘 곳 없으면 셔플)
       }
     } catch (err) {
@@ -388,7 +391,7 @@ export class Game {
         await this.levelClear();
         return;
       }
-      await this.animateFalls(this.board.collapse());
+      await this.animateFalls(this.collapse());
     }
     // 가능한 수가 없으면 알림 없이 셔플
     if (!this.board.findMove()) await this.shuffleBoard();
@@ -609,10 +612,61 @@ export class Game {
     }
   }
 
+  // 빈칸 채우기 + 대기 중인 아이템을 새로 떨어지는 타일 중 하나로 바꿔 내려보냄
+  collapse() {
+    const falls = this.board.collapse();
+    if (!this.pendingItems.length) return falls;
+    const fresh = falls.filter((f) => f.fromY < 0 && !f.tile.special);
+    while (this.pendingItems.length && fresh.length) {
+      const kind = this.pendingItems.shift();
+      const f = fresh.splice(Math.floor(Math.random() * fresh.length), 1)[0];
+      const idx = this.chars.findIndex((ch) => ch.item === kind);
+      if (idx < 0) continue;
+      Object.assign(f.tile, { type: idx, special: true, item: kind });
+      if (kind === 'timebomb') { f.tile.fuse = this.tw.time + FUSE_MS + 600; f.tile.shownDigit = -1; }
+    }
+    this.pendingItems.length = 0;
+    return falls;
+  }
+
+  // 지울 때마다 아이템이 생길지 정한다
+  rollItems(m, cascade, swapCells) {
+    // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 지구
+    if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('globe');
+    // 11판부터 시한폭탄, 21판부터 화살표: 지울 때마다 10%
+    if (this.level >= 11 && Math.random() < 0.1) this.pendingItems.push('timebomb');
+    if (this.level >= 21 && Math.random() < 0.1) this.pendingItems.push('arrow');
+  }
+
+  // 시한폭탄: 숫자가 바뀔 때 삑, 0이 지나면 (다른 연출이 끝난 뒤) 폭발
+  updateTimebombs() {
+    if (!this.board) return;
+    const now = this.tw.time;
+    for (let i = 0; i < this.board.cells.length; i++) {
+      const t = this.board.cells[i];
+      if (!t || t.item !== 'timebomb') continue;
+      const d = this.fuseDigit(t);
+      if (d !== t.shownDigit) {
+        t.shownDigit = d;
+        this.sound.play('beep', d === 0 ? 7 : 0);
+      }
+      if (now >= t.fuse && !this.busy) {
+        const [r, c] = this.board.rc(i);
+        this.detonate({ r, c });
+        return;
+      }
+    }
+  }
+
+  fuseDigit(t) {
+    return Math.max(0, Math.min(5, Math.ceil((t.fuse - this.tw.time) / 1000) - 1));
+  }
+
   async resolveStep(m, cascade, swapCells) {
     const J = this.J;
     const board = this.board;
     const rows = this.cfg.ROWS, cols = this.cfg.COLS;
+    this.rollItems(m, cascade, swapCells);
     const HIT = J > 0 ? 40 : 0;
 
     // 1) 4개 이상 매치 그룹 → 특수 타일 생성 위치 (스왑한 칸 우선, 없으면 그룹 중심에 가까운 칸)
@@ -922,6 +976,7 @@ export class Game {
     this.lastTs = ts;
     this.tw.update(dt);
     this.updateTimer();
+    this.updateTimebombs();
     this.fx.update(dt);
     this.faces.update();
     this.watchdog();
@@ -993,6 +1048,9 @@ export class Game {
     const T = this.T;
     const amp = this.faces.amp;
     let ox = t.jx + (t.hx || 0) + t.ox;
+    // 시한폭탄이 0이면 부르르
+    const fuse = t.item === 'timebomb' ? this.fuseDigit(t) : -1;
+    if (fuse === 0) ox += (Math.random() * 2 - 1) * 3;
     let oy = (t.hy || 0) + t.oy;
     if (selected) ox += (Math.random() * 2 - 1) * 0.9 * amp;
     // 평소 숨쉬듯 살짝 들썩
@@ -1022,6 +1080,7 @@ export class Game {
         ctx.restore();
       }
     }
+    if (fuse >= 0) this.drawDigit(fuse, 0, -T * 0.46, T * 0.24, ts);
     if (t.flash > 0) {
       ctx.globalAlpha = t.alpha * t.flash * 0.85;
       ctx.fillStyle = '#ffffff';
@@ -1030,6 +1089,30 @@ export class Game {
     }
     ctx.restore();
     ctx.globalAlpha = 1;
+  }
+
+  // 빨간 7세그먼트 디지털 숫자 (cx, cy 중심, 높이 h)
+  drawDigit(n, cx, cy, h, ts) {
+    const ctx = this.ctx;
+    const SEG = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'][n] || '';
+    const w = h * 0.55, th = h * 0.13, hw = w / 2, hh = h / 2;
+    const seg = {
+      a: [-hw, -hh, hw, -hh], g: [-hw, 0, hw, 0], d: [-hw, hh, hw, hh],
+      f: [-hw, -hh, -hw, 0], b: [hw, -hh, hw, 0], e: [-hw, 0, -hw, hh], c: [hw, 0, hw, hh],
+    };
+    const blink = n === 0 && Math.floor(ts / 120) % 2 === 0;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = th;
+    // 꺼진 세그먼트는 어둡게
+    ctx.strokeStyle = 'rgba(255,40,40,0.12)';
+    for (const k of 'abcdefg') { const [x0, y0, x1, y1] = seg[k]; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+    ctx.strokeStyle = blink ? '#ffffff' : '#ff2b2b';
+    ctx.shadowColor = 'rgba(255,30,30,0.9)';
+    ctx.shadowBlur = h * 0.35;
+    for (const k of SEG) { const [x0, y0, x1, y1] = seg[k]; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+    ctx.restore();
   }
 
   roundRect(x, y, w, h, r) {

@@ -280,4 +280,100 @@ export const EMBLEMS = {
       ctx.fillText('SNS', T / 2, T * 0.45);
     });
   },
+
+  // 지구: 파란 바탕에 하얀 지도 (경선·위선 + 대륙)
+  globe(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      const cx = T / 2, cy = T / 2, R = T * 0.32;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.fill();
+      ctx.clip();
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#ffffff';
+      // 대륙 (아메리카 · 유라시아 · 아프리카 느낌의 덩어리)
+      const blob = (pts) => {
+        ctx.beginPath();
+        pts.forEach(([x, y], i) => (i ? ctx.lineTo(cx + x * R, cy + y * R) : ctx.moveTo(cx + x * R, cy + y * R)));
+        ctx.closePath();
+        ctx.fill();
+      };
+      blob([[-0.85, -0.55], [-0.45, -0.75], [-0.3, -0.45], [-0.5, -0.15], [-0.35, 0.05], [-0.45, 0.35], [-0.6, 0.75], [-0.75, 0.4], [-0.9, 0.0]]);
+      blob([[0.0, -0.8], [0.5, -0.75], [0.9, -0.45], [0.75, -0.2], [0.45, -0.15], [0.25, -0.3], [0.05, -0.35]]);
+      blob([[0.05, -0.15], [0.4, -0.05], [0.45, 0.3], [0.25, 0.75], [0.1, 0.55], [-0.05, 0.15]]);
+      blob([[0.6, 0.35], [0.85, 0.4], [0.8, 0.6], [0.6, 0.55]]);
+      // 경선·위선
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = T * 0.015;
+      for (const k of [0.45, 0.85]) {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, R * k, R, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      for (const y of [-0.5, 0, 0.5]) {
+        const w = Math.sqrt(1 - y * y) * R;
+        ctx.beginPath();
+        ctx.moveTo(cx - w, cy + y * R);
+        ctx.lineTo(cx + w, cy + y * R);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.lineWidth = T * 0.035;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+    });
+  },
+
+  // 시한폭탄: 검은 동그라미 + 디지털 창 (숫자는 게임이 매 프레임 그 위에 그림)
+  timebomb(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      const cx = T / 2, cy = T * 0.54, R = T * 0.3;
+      // 심지
+      ctx.strokeStyle = '#c8a46a';
+      ctx.lineWidth = T * 0.04;
+      ctx.beginPath();
+      ctx.moveTo(cx + R * 0.5, cy - R * 0.85);
+      ctx.quadraticCurveTo(cx + R * 0.9, cy - R * 1.35, cx + R * 1.2, cy - R * 1.2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      const g = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R);
+      g.addColorStop(0, '#5a5f6e');
+      g.addColorStop(1, '#0b0c10');
+      ctx.fillStyle = g;
+      ctx.fill();
+      // 디지털 창
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#1a0000';
+      ctx.fillRect(cx - R * 0.48, cy - R * 0.58, R * 0.96, R * 1.16);
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = T * 0.015;
+      ctx.strokeRect(cx - R * 0.48, cy - R * 0.58, R * 0.96, R * 1.16);
+    });
+  },
+
+  // 화살표: 주황 바탕에 하얀 양방향 가로 화살표
+  arrow(ctx, T, color) {
+    iconBg(ctx, T, color, (ink) => {
+      const y = T / 2, x0 = T * 0.16, x1 = T * 0.84, h = T * 0.09, head = T * 0.17;
+      ctx.beginPath();
+      ctx.moveTo(x0, y);
+      ctx.lineTo(x0 + head, y - head);
+      ctx.lineTo(x0 + head, y - h);
+      ctx.lineTo(x1 - head, y - h);
+      ctx.lineTo(x1 - head, y - head);
+      ctx.lineTo(x1, y);
+      ctx.lineTo(x1 - head, y + head);
+      ctx.lineTo(x1 - head, y + h);
+      ctx.lineTo(x0 + head, y + h);
+      ctx.lineTo(x0 + head, y + head);
+      ctx.closePath();
+      ctx.fillStyle = ink;
+      ctx.fill();
+    });
+  },
 };

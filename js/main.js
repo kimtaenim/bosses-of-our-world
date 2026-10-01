@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 import { Game } from './game.js';
 import { attachInput } from './input.js';
+import { ITEMS } from './items.js';
 
 async function main() {
   const res = await fetch(CONFIG.CHARACTERS_URL);
@@ -14,7 +15,7 @@ async function main() {
   const characters = data.characters.map((ch) => ({
     ...ch,
     color: useAlt && ch.colorAlt ? ch.colorAlt : ch.color,
-  }));
+  })).concat(ITEMS); // 아이템(지구·시한폭탄·화살표)은 인물 뒤에 가짜 인물로 붙인다
   // ?level=N 이면 그 판부터, 아니면 저장된 판·점수에서 이어하기
   const startLevel = parseInt(params.get('level'), 10) > 0 ? parseInt(params.get('level'), 10) : null;
 

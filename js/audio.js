@@ -6,17 +6,19 @@
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
 //     anthem 성조기: 마림바 "솔미도미솔도" (성조기여 영원하라 첫 구절)
 //     fart 인공기·러시아 국기 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
-//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / boom 그 밖
+//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / boom 그 밖(지구)
+//     arrow 화살표 슈우웅 / 시한폭탄은 rocket 콰광
+//   beep    시한폭탄 카운트다운 삑
 //   clear   판 클리어 (철퍼덕 와르르)
 
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { special_anthem: 3200, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
+const MIN_GAP = { beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
-export const SPECIAL_KIND = { us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
+export const SPECIAL_KIND = { globe: 'boom', timebomb: 'rocket', arrow: 'arrow', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -618,6 +620,14 @@ export class Sound {
         this.tone('sine', 1047, 1047, 0.12, 0.3, 0.05);
         this.tone('sine', 1568, 1568, 0.25, 0.27, 0.13);
         this.tone('sine', 2093, 2093, 0.3, 0.16, 0.22);
+        break;
+      case 'special_arrow': // 화살표: "슈우웅~" 가로로 날아가는 바람 + 끝에 "탁"
+        this.noise(0.35, 0.7, 600, 0, 'bandpass', 5000, 2);
+        this.tone('sawtooth', 300, 1200, 0.25, 0.12);
+        this.tone('triangle', 900, 300, 0.06, 0.35, 0.3);
+        break;
+      case 'beep': // 시한폭탄 카운트다운 "삑" (semitone 7이면 0초: 더 높게)
+        this.tone('square', 1320 * k, 1320 * k, 0.07, 0.16);
         break;
       case 'special_boom': // 그 밖: 철퍼덕 쾅
         this.splat(1.6);
