@@ -1,3 +1,4 @@
+import { drawDroneShape } from './emblems.js';
 // 파티클·링·텍스트·화면 흔들림. 좌표는 보드 논리 px.
 // juice: CONFIG.JUICE 배율, reduced: prefers-reduced-motion (흔들림·파티클 끔)
 
@@ -16,6 +17,7 @@ export class FX {
     this.beams = [];
     this.rockets = [];
     this.arcs = []; // 포물선 미사일
+    this.drones = []; // 비틀비틀 날아가는 드론
     this.zaps = [];
     this.flashA = 0;   // 화면 전체 흰 번쩍임
     this.shakeAmp = 0;
@@ -149,6 +151,13 @@ export class FX {
     this.arcs.push({ x0, y0, x1, y1, dur, peak, t: 0, x: x0, y: y0, ang: 0 });
   }
 
+  // 드론: (x0,y0) → (x1,y1)로 요리조리 비틀비틀 날아감 (dur 초)
+  droneFly(x0, y0, x1, y1, dur, size) {
+    if (this.juice <= 0) return;
+    const ph = Math.random() * 6;
+    this.drones.push({ x0, y0, x1, y1, dur, size, t: 0, x: x0, y: y0, tilt: 0, ph });
+  }
+
   shake(px) {
     if (this.reduced || this.juice <= 0) return;
     this.shakeAmp = Math.max(this.shakeAmp, Math.min(px * this.juice, 10 * Math.max(1, this.juice)));
@@ -208,6 +217,22 @@ export class FX {
       }
     }
     this.arcs = this.arcs.filter((a) => a.t < a.dur);
+    for (const d of this.drones) {
+      d.t += s;
+      const p = Math.min(d.t / d.dur, 1);
+      const e = p * p * (3 - 2 * p);
+      const dx = d.x1 - d.x0, dy = d.y1 - d.y0;
+      const len = Math.hypot(dx, dy) || 1;
+      // 진행 방향에 수직으로 크게 갈지자, 위아래로 둥실, 처음엔 위로 솟음
+      const side = Math.sin(p * Math.PI * 3 + d.ph) * 40 * Math.sin(p * Math.PI);
+      const lift = -60 * Math.sin(p * Math.PI);
+      const bob = Math.sin(d.t * 22) * 3;
+      const nx = d.x0 + dx * e + (-dy / len) * side;
+      const ny = d.y0 + dy * e + (dx / len) * side + lift + bob;
+      d.tilt = Math.max(-0.5, Math.min(0.5, (nx - d.x) * 0.08)) + Math.sin(d.t * 9) * 0.12;
+      d.x = nx; d.y = ny;
+    }
+    this.drones = this.drones.filter((d) => d.t < d.dur);
     for (const z of this.zaps) z.t += s;
     this.zaps = this.zaps.filter((z) => z.t < z.dur);
     for (const b of this.beams) b.t += s;
@@ -240,6 +265,13 @@ export class FX {
 
     for (const rk of this.rockets) this.drawRocket(ctx, rk);
     for (const a of this.arcs) this.drawRocket(ctx, a, a.ang);
+    for (const d of this.drones) {
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.tilt);
+      drawDroneShape(ctx, 0, 0, d.size, d.t * 60);
+      ctx.restore();
+    }
 
     for (const z of this.zaps) {
       if (z.t < 0) continue;

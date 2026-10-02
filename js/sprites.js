@@ -1,4 +1,4 @@
-import { EMBLEMS } from './emblems.js';
+import { EMBLEMS, label } from './emblems.js';
 
 // 인물 타일 스프라이트. 표정별 얼굴 이미지가 없으면 코드로 그린 플레이스홀더 얼굴을 쓴다.
 // 스프라이트는 화면 해상도에 맞춰 오프스크린 캔버스로 미리 렌더링해 둔다.
@@ -343,6 +343,7 @@ export class Sprites {
     const img = this.specialImgs[i];
     if (img) {
       ctx.drawImage(img, 0, 0, T, T);
+      if (ch.label) label(ctx, T, ch.label); // 그림 위 작은 글씨 (DRONE)
     } else {
       ctx.fillStyle = ch.color;
       ctx.fillRect(0, 0, T, T);
@@ -353,7 +354,7 @@ export class Sprites {
       ctx.fillRect(0, 0, T, T);
     }
     const flag = EMBLEMS[ch.emblem];
-    if (!img && flag && ch.group === 'politician') {
+    if (!img && flag && ch.group === 'politician' && ch.emblemStyle !== 'icon') {
       // 동그라미 국기 (흰 테두리 + 그림자)
       const R = T * 0.3, cx = T / 2, cy = T / 2;
       ctx.save();

@@ -36,7 +36,7 @@ function iconBg(ctx, T, color, draw) {
 }
 
 // 타일 위쪽에 작은 글씨 (ICBM, NUKE)
-function label(ctx, T, text) {
+export function label(ctx, T, text) {
   ctx.save();
   ctx.shadowColor = 'transparent';
   ctx.font = `900 ${T * 0.15}px system-ui, sans-serif`;
@@ -467,4 +467,103 @@ export const EMBLEMS = {
       label(ctx, T, 'NUKE');
     });
   },
+
+  // 방사능 홍차 (푸틴): 남색 바탕에 김 나는 하얀 홍차잔, 잔에 노란 방사능 마크
+  tea(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      const cx = T * 0.46;
+      // 받침 접시
+      ctx.fillStyle = '#e9edf2';
+      ctx.beginPath(); ctx.ellipse(cx + T * 0.03, T * 0.8, T * 0.34, T * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowColor = 'transparent';
+      // 손잡이
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = T * 0.055;
+      ctx.beginPath(); ctx.ellipse(cx + T * 0.27, T * 0.55, T * 0.085, T * 0.1, 0, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+      // 잔
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(cx - T * 0.27, T * 0.4);
+      ctx.lineTo(cx + T * 0.27, T * 0.4);
+      ctx.quadraticCurveTo(cx + T * 0.25, T * 0.78, cx, T * 0.78);
+      ctx.quadraticCurveTo(cx - T * 0.25, T * 0.78, cx - T * 0.27, T * 0.4);
+      ctx.closePath(); ctx.fill();
+      // 홍차 수면
+      ctx.fillStyle = '#B5651D';
+      ctx.beginPath(); ctx.ellipse(cx, T * 0.4, T * 0.27, T * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+      // 김 (초록빛이 살짝 도는 수상한 김)
+      ctx.strokeStyle = 'rgba(170,255,140,0.85)';
+      ctx.lineWidth = T * 0.03;
+      ctx.lineCap = 'round';
+      for (const dx of [-0.1, 0.02, 0.14]) {
+        ctx.beginPath();
+        ctx.moveTo(cx + dx * T, T * 0.33);
+        ctx.bezierCurveTo(cx + (dx - 0.06) * T, T * 0.26, cx + (dx + 0.06) * T, T * 0.2, cx + dx * T, T * 0.12);
+        ctx.stroke();
+      }
+      // 방사능 마크
+      const rx = cx, ry = T * 0.58, R = T * 0.13;
+      ctx.fillStyle = '#FFD400';
+      ctx.beginPath(); ctx.arc(rx, ry, R, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#111';
+      for (let k = 0; k < 3; k++) {
+        const a0 = -Math.PI / 2 + k * (Math.PI * 2 / 3) - Math.PI / 6;
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.arc(rx, ry, R * 0.88, a0, a0 + Math.PI / 3);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = '#FFD400';
+      ctx.beginPath(); ctx.arc(rx, ry, R * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(rx, ry, R * 0.18, 0, Math.PI * 2); ctx.fill();
+    });
+  },
+
+  // 드론 (그림 파일이 없을 때 대신 그리는 것)
+  drone(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      drawDroneShape(ctx, T / 2, T * 0.56, T * 0.8, 0);
+      label(ctx, T, 'DRONE');
+    });
+  },
 };
+
+// 드론 모양 (가운데 cx, cy, 폭 w, 프로펠러 각도 spin) — 타일 그림과 날아가는 연출에서 같이 씀
+export function drawDroneShape(ctx, cx, cy, w, spin) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  const s = w / 100;
+  ctx.lineWidth = 3 * s;
+  ctx.strokeStyle = '#1d2747';
+  // 팔
+  ctx.strokeStyle = '#e8ecf2';
+  ctx.lineWidth = 7 * s;
+  ctx.beginPath();
+  ctx.moveTo(-38 * s, -14 * s); ctx.lineTo(38 * s, 14 * s);
+  ctx.moveTo(38 * s, -14 * s); ctx.lineTo(-38 * s, 14 * s);
+  ctx.stroke();
+  // 프로펠러 (돌아가는 흐린 원 + 날개)
+  for (const [x, y] of [[-40, -16], [40, -16], [-40, 16], [40, 16]]) {
+    ctx.fillStyle = 'rgba(40,45,60,0.25)';
+    ctx.beginPath(); ctx.ellipse(x * s, (y - 7) * s, 20 * s, 6 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#2b2f3a';
+    ctx.lineWidth = 3.5 * s;
+    ctx.beginPath();
+    const a = spin + (x + y) * 0.1;
+    ctx.moveTo((x - Math.cos(a) * 18) * s, (y - 7 - Math.sin(a) * 4) * s);
+    ctx.lineTo((x + Math.cos(a) * 18) * s, (y - 7 + Math.sin(a) * 4) * s);
+    ctx.stroke();
+    ctx.fillStyle = '#2b2f3a';
+    ctx.beginPath(); ctx.arc(x * s, (y - 4) * s, 4 * s, 0, Math.PI * 2); ctx.fill();
+  }
+  // 몸통
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#1d2747';
+  ctx.lineWidth = 3 * s;
+  ctx.beginPath(); ctx.ellipse(0, 0, 24 * s, 17 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 눈
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(-8 * s, -2 * s, 3.5 * s, 0, Math.PI * 2); ctx.arc(8 * s, -2 * s, 3.5 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}

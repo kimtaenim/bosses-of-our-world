@@ -58,7 +58,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
-    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile')
+    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile' | 'drone')
     this.lastMatch = 0;
     this.lastTs = 0;
     const saved = loadProgress();
@@ -641,6 +641,8 @@ export class Game {
     const p = 1 / this.itemOdds();
     if (this.level >= 11 && Math.random() < p) this.pendingItems.push('timebomb');
     if (this.level >= 21 && Math.random() < p) this.pendingItems.push('nuke');
+    // 31판부터 드론: 처음엔 1/6, 판마다 점점 드물게 (32판 1/7, 33판 1/8 …)
+    if (this.level >= 31 && Math.random() < 1 / (6 + this.level - 31)) this.pendingItems.push('drone');
   }
 
   // 아이템 확률의 분모: 20판까지 10, 21판 11, 22판 12 ...
@@ -717,7 +719,7 @@ export class Game {
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
     //   NUKE든 ICBM이든 셋 맞추면 화면 전체 폭발
-    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen };
+    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.screen };
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
@@ -1100,6 +1102,8 @@ export class Game {
     const fuse = t.item === 'timebomb' ? this.fuseDigit(t) : -1;
     if (fuse === 0) ox += (Math.random() * 2 - 1) * 5;
     let oy = (t.hy || 0) + t.oy;
+    // 드론은 판 위에서 둥실둥실, 살짝 기우뚱 (날 수 있다는 표시)
+    if (t.item === 'drone') { oy += Math.sin(ts / 260 + t.phase) * 3.5 - 2; ox += Math.sin(ts / 410 + t.phase) * 1.5; }
     if (selected) ox += (Math.random() * 2 - 1) * 0.9 * amp;
     // 평소 숨쉬듯 살짝 들썩
     if (t.exprPrio === 0) oy += Math.sin(ts / 520 + t.phase) * 0.8 * amp * this.faces.activity;

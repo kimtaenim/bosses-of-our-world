@@ -194,6 +194,30 @@ const missile = {
   },
 };
 
+const DRONE_FLIGHT = 1100; // ms
+
+const droneStrike = {
+  // 드론: 위잉 비틀비틀 날아가 무작위 한 칸에 펑
+  area(r, c, rows, cols) {
+    let tr, tc;
+    do { tr = Math.floor(Math.random() * rows); tc = Math.floor(Math.random() * cols); } while (tr === r && tc === c);
+    return [{ r, c, delay: 0 }, { r: tr, c: tc, delay: DRONE_FLIGHT }];
+  },
+  play(game, r, c, rows, cols, area) {
+    const t = (area || []).find((a) => a.delay > 0);
+    if (!t) return;
+    const x = game.cx(c), y = game.cy(r), tx = game.cx(t.c), ty = game.cy(t.r);
+    game.fx.droneFly(x, y, tx, ty, DRONE_FLIGHT / 1000, game.T * 0.95);
+    game.tw.after(DRONE_FLIGHT, () => {
+      game.fx.ring(tx, ty, 4, game.STEP * 1.2, 220, 9, '255,220,140');
+      game.fx.burst(tx, ty, '#ffffff', 16, 1.3);
+      game.fx.burst(tx, ty, '#ffb347', 12, 1.1);
+      game.fx.shake(5);
+      game.sound.play('special_fart'); // 펑 + 방귀
+    });
+  },
+};
+
 const missile3 = {
   // ICBM 셋: 자기 열과 양옆 열, 세로 세 줄 전체 + 미사일 세 발
   area(r, c, rows, cols) {
@@ -245,7 +269,7 @@ const screen = {
 };
 
 export const EFFECTS = {
-  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen, droneStrike,
   // 그룹 기본값
   politician: bomb,
   business: row,

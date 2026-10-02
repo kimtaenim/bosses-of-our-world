@@ -9,6 +9,7 @@
 //     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / nuke 핵폭탄 거대한 설사 방귀 / boom 그 밖
 //     missile ICBM 설사 방귀 / 시한폭탄은 rocket 콰광
 //   beep    시한폭탄 카운트다운 삑
+//     drone 드론 위이잉 (착지하면 special_fart) / tea 방사능 홍차 쪼르르 + 억
 //   clear   판 클리어 (철퍼덕 와르르)
 
 const MUTE_KEY = 'bosses-of-our-world.muted';
@@ -18,7 +19,7 @@ const MIN_GAP = { beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 4
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
-export const SPECIAL_KIND = { nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
+export const SPECIAL_KIND = { drone: 'drone', tea: 'tea', nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -663,6 +664,65 @@ export class Sound {
         this.tone('sine', 1568, 1568, 0.25, 0.27, 0.13);
         this.tone('sine', 2093, 2093, 0.3, 0.16, 0.22);
         break;
+      case 'special_drone': { // 드론 이륙: "위이이잉~" 비틀비틀 (음이 출렁거림)
+        const ctx = this.ctx;
+        const t = this.t0;
+        const o = ctx.createOscillator();
+        const am = ctx.createGain();
+        const lfo = ctx.createOscillator();
+        const lg = ctx.createGain();
+        const wob = ctx.createOscillator();
+        const wg = ctx.createGain();
+        const f = ctx.createBiquadFilter();
+        const g = ctx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(180, t);
+        o.frequency.linearRampToValueAtTime(260, t + 0.3);
+        wob.frequency.value = 3.2; // 비틀비틀
+        wg.gain.value = 35;
+        wob.connect(wg).connect(o.frequency);
+        lfo.frequency.value = 42; // 프로펠러 떨림
+        lg.gain.value = 0.35;
+        am.gain.value = 0.65;
+        lfo.connect(lg).connect(am.gain);
+        f.type = 'bandpass';
+        f.frequency.value = 1100;
+        f.Q.value = 1.2;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.3, t + 0.12);
+        g.gain.setValueAtTime(0.28, t + 0.9);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+        o.connect(f).connect(am).connect(g).connect(this.gain);
+        for (const x of [o, lfo, wob]) { x.start(t); x.stop(t + 1.15); }
+        break;
+      }
+      case 'special_tea': { // 방사능 홍차: "쪼르르르륵" 따르는 소리 + "억!"
+        const ctx = this.ctx;
+        const t = this.t0;
+        const src = this.noiseSrc();
+        const f = ctx.createBiquadFilter();
+        const lfo = ctx.createOscillator();
+        const lg = ctx.createGain();
+        const g = ctx.createGain();
+        f.type = 'bandpass';
+        f.Q.value = 6;
+        f.frequency.setValueAtTime(500, t);
+        f.frequency.exponentialRampToValueAtTime(1500, t + 0.75); // 잔이 차오르며 음이 올라감
+        lfo.frequency.value = 14; // 졸졸 출렁
+        lg.gain.value = 180;
+        lfo.connect(lg).connect(f.frequency);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.7, t + 0.05);
+        g.gain.setValueAtTime(0.6, t + 0.65);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+        src.connect(f).connect(g).connect(this.gain);
+        lfo.start(t); src.start(t, Math.random() * 0.3); lfo.stop(t + 0.85); src.stop(t + 0.85);
+        for (let i = 0; i < 8; i++) this.bubble(0.05 + i * 0.09 + Math.random() * 0.03, 500 + i * 60 + Math.random() * 200, 0.03, 0.12);
+        // 억! (마시고 쓰러지는 짧고 낮은 신음)
+        this.vowel(0.85, 0.22, 150, 95, [[600, 1], [1000, 0.5], [2400, 0.15]], 1.8);
+        this.tone('sine', 120, 50, 0.15, 0.35, 0.86);
+        break;
+      }
       case 'special_nuke': // 핵폭탄: 길고 거대한 설사 방귀 + 우르릉
         this.wetFart(2, 0, 0.55);
         this.fart(1.6, 0.05, 0.3);
