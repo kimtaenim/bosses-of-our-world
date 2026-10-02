@@ -158,10 +158,11 @@ export class FX {
 
   // 드론: (x0,y0) → (x1,y1)로 요리조리 비틀비틀 날아감 (dur 초)
   // kind 'ufo'면 빙글빙글 원을 그리며 날아감
-  droneFly(x0, y0, x1, y1, dur, size, kind = 'drone') {
+  // wild: 클수록 더 크게, 더 여러 번 휘청이며 마구 날아다님
+  droneFly(x0, y0, x1, y1, dur, size, kind = 'drone', wild = 1) {
     if (this.juice <= 0) return;
     const ph = Math.random() * 6;
-    this.drones.push({ x0, y0, x1, y1, dur, size, kind, t: 0, x: x0, y: y0, tilt: 0, ph });
+    this.drones.push({ x0, y0, x1, y1, dur, size, kind, wild, t: 0, x: x0, y: y0, tilt: 0, ph });
   }
 
   // 카이주: points [{x,y}] 를 stepDur 초마다 한 칸씩 쿵쿵 뛰어 이동, 끝나면 사라짐
@@ -239,13 +240,13 @@ export class FX {
       let nx, ny;
       if (d.kind === 'ufo') {
         // 빙글빙글: 목적지로 가면서 반지름 커졌다 작아지는 원을 세 바퀴
-        const rad = 55 * Math.sin(p * Math.PI);
-        const a = d.ph + p * Math.PI * 6;
+        const rad = 55 * d.wild * Math.sin(p * Math.PI);
+        const a = d.ph + p * Math.PI * 6 * d.wild;
         nx = d.x0 + dx * e + Math.cos(a) * rad;
         ny = d.y0 + dy * e + Math.sin(a) * rad * 0.6 - 40 * Math.sin(p * Math.PI);
       } else {
-        const side = Math.sin(p * Math.PI * 3 + d.ph) * 40 * Math.sin(p * Math.PI);
-        const lift = -60 * Math.sin(p * Math.PI);
+        const side = Math.sin(p * Math.PI * 3 * d.wild + d.ph) * 40 * d.wild * Math.sin(p * Math.PI);
+        const lift = -60 * Math.sqrt(d.wild) * Math.sin(p * Math.PI);
         const bob = Math.sin(d.t * 22) * 3;
         nx = d.x0 + dx * e + (-dy / len) * side;
         ny = d.y0 + dy * e + (dx / len) * side + lift + bob;

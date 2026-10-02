@@ -218,34 +218,31 @@ const droneStrike = {
   },
 };
 
+// 드론·에일리언 셋: 일곱 대가 제각각 마구 날아다니다 무작위 일곱 칸에 하나씩 펑
+const SWARM = 7;
+function swarmArea(r, c, rows, cols, minMs, maxMs) {
+  const cells = [];
+  for (let rr = 0; rr < rows; rr++) for (let cc = 0; cc < cols; cc++) if (rr !== r || cc !== c) cells.push({ r: rr, c: cc });
+  for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
+  const out = [{ r, c, delay: 0 }];
+  for (const t of cells.slice(0, SWARM)) out.push({ r: t.r, c: t.c, delay: Math.round(minMs + Math.random() * (maxMs - minMs)) });
+  return out;
+}
+function swarmPlay(game, r, c, area, kind, size, boom) {
+  for (const t of (area || []).filter((a) => a.delay > 0)) {
+    const tx = game.cx(t.c), ty = game.cy(t.r);
+    game.fx.droneFly(game.cx(c), game.cy(r), tx, ty, t.delay / 1000, size, kind, 2.2);
+    game.tw.after(t.delay, () => boom(tx, ty));
+  }
+}
 const droneStrike3 = {
-  // 드론 셋: 위잉 비틀비틀 날아가 무작위 위치에 3×3 펑
-  area(r, c, rows, cols) {
-    const tr = 1 + Math.floor(Math.random() * Math.max(1, rows - 2));
-    const tc = 1 + Math.floor(Math.random() * Math.max(1, cols - 2));
-    const out = [{ r, c, delay: 0 }];
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        const rr = tr + dr, cc = tc + dc;
-        if (rr < 0 || rr >= rows || cc < 0 || cc >= cols || (rr === r && cc === c)) continue;
-        out.push({ r: rr, c: cc, delay: DRONE_FLIGHT + (Math.abs(dr) + Math.abs(dc)) * 25 });
-      }
-    }
-    out.center = { r: tr, c: tc };
-    return out;
-  },
+  area: (r, c, rows, cols) => swarmArea(r, c, rows, cols, 1500, 2600),
   play(game, r, c, rows, cols, area) {
-    const ctr = area && area.center;
-    if (!ctr) return;
-    const x = game.cx(c), y = game.cy(r), tx = game.cx(ctr.c), ty = game.cy(ctr.r);
-    game.fx.droneFly(x, y, tx, ty, DRONE_FLIGHT / 1000, game.T * 1.2);
-    game.tw.after(DRONE_FLIGHT, () => {
-      game.fx.ring(tx, ty, 6, game.STEP * 3, 280, 9);
-      game.fx.ring(tx, ty, 4, game.STEP * 1.5, 160, 12, '255,244,214');
-      game.fx.burst(tx, ty, '#ffffff', 22, 1.5);
-      game.fx.burst(tx, ty, '#ffb347', 18, 1.3);
-      game.fx.flash(0.3);
-      game.fx.shake(8);
+    swarmPlay(game, r, c, area, 'drone', game.T * 0.9, (tx, ty) => {
+      game.fx.ring(tx, ty, 4, game.STEP * 1.2, 220, 9, '255,220,140');
+      game.fx.burst(tx, ty, '#ffffff', 14, 1.3);
+      game.fx.burst(tx, ty, '#ffb347', 10, 1.1);
+      game.fx.shake(5);
       game.sound.play('special_fart'); // 펑 + 방귀
     });
   },
@@ -274,21 +271,13 @@ const ufoStrike = {
   },
 };
 const ufoStrike3 = {
-  area(r, c, rows, cols) {
-    const out = droneStrike3.area(r, c, rows, cols);
-    for (const a of out) if (a.delay > 0) a.delay += UFO_FLIGHT - DRONE_FLIGHT;
-    return out;
-  },
+  area: (r, c, rows, cols) => swarmArea(r, c, rows, cols, 1700, 2800),
   play(game, r, c, rows, cols, area) {
-    const ctr = area && area.center;
-    if (!ctr) return;
-    const tx = game.cx(ctr.c), ty = game.cy(ctr.r);
-    game.fx.droneFly(game.cx(c), game.cy(r), tx, ty, UFO_FLIGHT / 1000, game.T * 1.25, 'ufo');
-    game.tw.after(UFO_FLIGHT, () => {
-      game.fx.ring(tx, ty, 6, game.STEP * 3, 280, 10, '140,255,160');
-      game.fx.burst(tx, ty, '#8CFFA0', 24, 1.6);
-      game.fx.flash(0.3);
-      game.fx.shake(8);
+    swarmPlay(game, r, c, area, 'ufo', game.T * 1.05, (tx, ty) => {
+      game.fx.ring(tx, ty, 4, game.STEP * 1.3, 240, 9, '140,255,160');
+      game.fx.burst(tx, ty, '#8CFFA0', 14, 1.3);
+      game.fx.burst(tx, ty, '#ffffff', 8, 1.1);
+      game.fx.shake(5);
       game.sound.play('ufo_zap');
     });
   },
