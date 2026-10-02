@@ -197,8 +197,32 @@ const missile3 = {
   },
 };
 
+const screen = {
+  // 화면 전체 폭발 (NUKE·ICBM 셋 맞추기): 가운데부터 바깥으로 퍼지며 전부 터짐
+  area(r, c, rows, cols) {
+    const out = [];
+    for (let rr = 0; rr < rows; rr++) {
+      for (let cc = 0; cc < cols; cc++) {
+        const d = Math.max(Math.abs(rr - r), Math.abs(cc - c));
+        out.push({ r: rr, c: cc, delay: d * 35 });
+      }
+    }
+    return out;
+  },
+  play(game, r, c, rows, cols) {
+    const x = game.cx(c), y = game.cy(r);
+    game.fx.ring(x, y, 10, game.STEP * 7, 500, 14);
+    game.fx.ring(x, y, 8, game.STEP * 5, 380, 18, '255,220,140');
+    game.fx.ring(x, y, 6, game.STEP * 3, 260, 12, '255,120,40');
+    for (let cc = 0; cc < cols; cc++) game.fx.rocket(game.cx(cc), game.cy(rows - 1));
+    game.fx.burst(x, y, '#ffffff', 40, 2.2);
+    game.fx.burst(x, y, '#FFB21F', 36, 1.8);
+    game.fx.burst(x, y, '#E2480C', 30, 1.5);
+  },
+};
+
 export const EFFECTS = {
-  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen,
   // 그룹 기본값
   politician: bomb,
   business: row,

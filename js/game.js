@@ -716,8 +716,8 @@ export class Game {
     const chained = []; // 다른 특수 효과에 맞아 연쇄 발동하는 특수 타일
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
-    //   핵폭탄 → 5×5, ICBM → 세로 세 줄
-    const BIG = { nuke: EFFECTS.bomb5, missile: EFFECTS.missile3 };
+    //   NUKE든 ICBM이든 셋 맞추면 화면 전체 폭발
+    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen };
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
@@ -811,7 +811,7 @@ export class Game {
       this.tw.after(pl.t - HIT, () => {
         pl.effect.play(this, pl.r, pl.c, rows, cols, pl.area);
         this.reactToSpecial(pl, doomed);
-        this.fx.flash(pl.big ? 0.6 : 0.35);
+        this.fx.flash(pl.big ? 0.9 : 0.35);
         this.fx.shake(pl.big ? 10 : 8);
         this.vibrate(pl.big ? [40, 30, 60] : 30);
         this.sound.special(this.chars[pl.type]); // 국기 방귀, 테슬라 부르릉, 로켓 콰광 ...
