@@ -698,10 +698,10 @@ export class Game {
 
   // 지울 때마다 아이템이 생길지 정한다
   rollItems(m, cascade, swapCells) {
-    // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 ICBM 미사일 (1판부터)
+    // ICBM (1판부터): 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면
     if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('missile');
-    // ICBM은 1판부터 지울 때마다 1/ICBM_ODDS 확률로도 내려옴 (두 줄 동시 지우기와 별개)
-    if (Math.random() < 1 / (this.cfg.ICBM_ODDS || 12)) this.pendingItems.push('missile');
+    // 콤보(연쇄)가 나오면 ICBM 하나 (한 번 옮길 때 한 개: 연쇄 2단계에서)
+    if (cascade === 2) this.pendingItems.push('missile');
     // 11판부터 시한폭탄: 지울 때마다 1/10 (21판부터 판마다 점점 드물게)
     if (this.level >= 11 && Math.random() < 1 / this.itemOdds()) this.pendingItems.push('timebomb');
     // 21판부터 드론: 처음엔 1/6, 판마다 점점 드물게 (22판 1/7, 23판 1/8 …)
