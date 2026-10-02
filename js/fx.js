@@ -1,4 +1,8 @@
 import { drawDroneShape, drawUfoShape, drawKaijuShape } from './emblems.js';
+
+// 카이주 걸음 한 칸 안의 비율: 처음 PAUSE 동안 멈춰 섰다가 MOVE 동안 왼발·오른발로 이동, 나머지는 착지해 서 있음
+export const KAIJU_PAUSE = 0.2;
+export const KAIJU_MOVE = 0.65;
 // 파티클·링·텍스트·화면 흔들림. 좌표는 보드 논리 px.
 // juice: CONFIG.JUICE 배율, reduced: prefers-reduced-motion (흔들림·파티클 끔)
 
@@ -285,12 +289,15 @@ export class FX {
     for (const rk of this.rockets) this.drawRocket(ctx, rk);
     for (const a of this.arcs) this.drawRocket(ctx, a, a.ang);
     for (const k of this.kaijus) {
+      // 한 칸마다: 멈춰 서기 → 왼발 → 오른발 → 착지해 서기 (쿵쾅쿵쾅 천천히)
       const n = k.points.length - 1;
       const f = k.t / k.stepDur;
       const i = Math.min(Math.floor(f), n);
-      const p = i >= n ? 1 : f - i;
+      const q = i >= n ? 1 : f - i;
+      const m = Math.max(0, Math.min(1, (q - KAIJU_PAUSE) / KAIJU_MOVE)); // 이동 진행
       const a = k.points[i], b = k.points[Math.min(i + 1, n)];
-      const x = a.x + (b.x - a.x) * p, y = a.y + (b.y - a.y) * p - Math.sin(p * Math.PI) * 26;
+      const bob = -Math.abs(Math.sin(m * Math.PI * 2)) * k.size * 0.08; // 발 디딜 때마다 살짝 들썩
+      const x = a.x + (b.x - a.x) * m, y = a.y + (b.y - a.y) * m + bob;
       const end = k.t > k.stepDur * n;
       const fade = end ? Math.max(0, 1 - (k.t - k.stepDur * n) / 0.35) : 1;
       ctx.save();
@@ -301,15 +308,11 @@ export class FX {
       if ((k.face || 1) < 0) ctx.scale(-1, 1);
       const grow = 1 + (end ? 0.3 * (1 - fade) : 0);
       if (this.kaijuFrames) {
-        // 걸음마다 왼발·오른발 번갈아, 착지 순간과 마지막엔 서 있는 그림
-        const stand = end || p > 0.85;
-        const img = this.kaijuFrames[stand ? 2 : i % 2];
+        const frame = end || q < KAIJU_PAUSE || m >= 1 ? 2 : m < 0.5 ? 0 : 1; // 서기 / 왼발 / 오른발
         const w = k.size * grow;
-        ctx.drawImage(img, -w / 2, -w * 0.62, w, w);
+        ctx.drawImage(this.kaijuFrames[frame], -w / 2, -w * 0.6, w, w);
       } else {
-        const squash = 1 + Math.sin(Math.min(p * 2, 1) * Math.PI) * 0.06;
-        ctx.scale(1, squash);
-        drawKaijuShape(ctx, 0, 0, k.size * grow, i === 0 && p < 0.6 ? 1 : 0.4 + 0.3 * Math.sin(k.t * 20));
+        drawKaijuShape(ctx, 0, 0, k.size * grow, i === 0 && q < KAIJU_PAUSE ? 1 : 0.4 + 0.3 * Math.sin(k.t * 20));
       }
       ctx.restore();
     }

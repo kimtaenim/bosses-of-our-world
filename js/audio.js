@@ -15,7 +15,7 @@
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { kaiju_stomp: 120, beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
+const MIN_GAP = { timpani: 60, kaiju_stomp: 120, beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
@@ -722,9 +722,26 @@ export class Sound {
         this.noise(1.1, 0.25, 2500, 0, 'bandpass', 1200, 1.5); // 쇳소리 바람
         break;
       }
+      case 'timpani': { // 팀파니: semitone 0 = 라(A2), 1 = 미(E2) — 카이주 발걸음
+        const f = semitone ? 82.41 : 110;
+        const ctx = this.ctx;
+        const t = this.t0;
+        for (const [m, v, dur] of [[1, 0.9, 1.1], [1.5, 0.35, 0.6], [1.98, 0.18, 0.4]]) {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(f * m * 1.04, t);
+          o.frequency.exponentialRampToValueAtTime(f * m, t + 0.08); // 막 칠 때 살짝 높았다 내려옴
+          this.env(g, t, v, 0.006, dur);
+          o.connect(g).connect(this.gain);
+          o.start(t); o.stop(t + dur + 0.03);
+        }
+        this.noise(0.06, 0.45, 600, 0, 'lowpass', 200, 1); // 말렛 타격
+        break;
+      }
       case 'kaiju_stomp': // 쿵! + 부서지는 소리
-        this.tone('sine', 90, 35, 0.25, 0.8);
-        this.noise(0.18, 0.5, 1800, 0, 'lowpass', 200, 1);
+        this.tone('sine', 90, 35, 0.25, 0.45);
+        this.noise(0.18, 0.4, 1800, 0, 'lowpass', 200, 1);
         for (let i = 0; i < 4; i++) this.noise(0.03, 0.25, 2000 + Math.random() * 2000, 0.04 + i * 0.03, 'bandpass');
         break;
       case 'special_ufo': { // UFO: "위우~위우~" 테레민처럼 출렁이는 소리

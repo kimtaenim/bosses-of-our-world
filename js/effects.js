@@ -326,7 +326,9 @@ const secrets3 = {
 };
 
 // 카이주: 자기 칸에서 시작해 상하좌우·대각선 이웃 칸으로 한 칸씩 다섯 번 쿵쿵, 밟은 칸을 부숨
-const KAIJU_STEP = 260; // ms
+const KAIJU_STEP = 720; // ms, 한 칸 (멈춤 + 왼발 + 오른발 + 착지)
+const KAIJU_LAND = 0.85; // 한 칸 안에서 착지하는 시점 (fx.js KAIJU_PAUSE + KAIJU_MOVE)
+const KAIJU_LEFT = 0.42; // 왼발 디디는 시점
 const kaiju = {
   area(r, c, rows, cols) {
     const path = [{ r, c }];
@@ -346,26 +348,34 @@ const kaiju = {
       cur = pick;
     }
     const out = [{ r, c, delay: 0 }];
-    path.slice(1).forEach((p, i) => { if (!out.some((o) => o.r === p.r && o.c === p.c)) out.push({ r: p.r, c: p.c, delay: (i + 1) * KAIJU_STEP }); });
+    path.slice(1).forEach((p, i) => { if (!out.some((o) => o.r === p.r && o.c === p.c)) out.push({ r: p.r, c: p.c, delay: (i + KAIJU_LAND) * KAIJU_STEP }); });
     out.path = path;
     return out;
   },
   play(game, r, c, rows, cols, area) {
     const path = (area && area.path) || [{ r, c }];
-    game.fx.kaiju(path.map((p) => ({ x: game.cx(p.c), y: game.cy(p.r) })), KAIJU_STEP / 1000, game.T * 1.7);
-    path.slice(1).forEach((p, i) => {
-      game.tw.after((i + 1) * KAIJU_STEP, () => {
-        const x = game.cx(p.c), y = game.cy(p.r);
-        game.fx.ring(x, y, 4, game.STEP * 0.9, 160, 8, '200,255,160');
-        game.fx.burst(x, y, '#8a7a66', 10, 1.2); // 부서진 잔해
-        game.fx.shake(5);
-        game.sound.play('kaiju_stomp');
-        game.kaijuScare(p.r, p.c); // 주변 얼굴들 비명·덜덜
-      });
-    });
-    game.tw.after(path.length * KAIJU_STEP, () => game.sound.play('special_fart')); // 사라지며 방귀
+    kaijuWalk(game, path, 0);
+    game.tw.after((path.length - 1 + KAIJU_LAND) * KAIJU_STEP, () => game.sound.play('special_fart')); // 사라지며 방귀
   },
 };
+
+// 카이주 한 마리가 path를 따라 걷는 연출: 왼발 "라"(팀파니), 착지 "미" + 쿵 + 부수기 + 주변 얼굴 비명
+function kaijuWalk(game, path, offset) {
+  game.tw.after(offset, () => game.fx.kaiju(path.map((p) => ({ x: game.cx(p.c), y: game.cy(p.r) })), KAIJU_STEP / 1000, game.T * 1.2));
+  path.slice(1).forEach((p, i) => {
+    const base = offset + i * KAIJU_STEP;
+    game.tw.after(base + KAIJU_LEFT * KAIJU_STEP, () => { game.sound.play('timpani', 0); game.fx.shake(2); }); // 라
+    game.tw.after(base + KAIJU_LAND * KAIJU_STEP, () => {
+      const x = game.cx(p.c), y = game.cy(p.r);
+      game.fx.ring(x, y, 4, game.STEP * 0.9, 160, 8, '200,255,160');
+      game.fx.burst(x, y, '#8a7a66', 10, 1.2); // 부서진 잔해
+      game.fx.shake(5);
+      game.sound.play('timpani', 1); // 미
+      game.sound.play('kaiju_stomp');
+      game.kaijuScare(p.r, p.c); // 주변 얼굴들 비명·덜덜
+    });
+  });
+}
 
 // 카이주 셋: 판 곳곳에서 카이주 다섯 마리가 나타나 각자 다섯 칸씩 쿵쿵 누비고 다님
 const kaiju5 = {
@@ -378,7 +388,7 @@ const kaiju5 = {
       const offset = k * 180;
       paths.push({ path: one.path, offset });
       for (const a of one) {
-        const d = a.delay + offset + KAIJU_STEP;
+        const d = a.delay + offset;
         const prev = out.find((o) => o.r === a.r && o.c === a.c);
         if (prev) prev.delay = Math.min(prev.delay, d);
         else out.push({ r: a.r, c: a.c, delay: d });
@@ -388,20 +398,8 @@ const kaiju5 = {
     return out;
   },
   play(game, r, c, rows, cols, area) {
-    for (const { path, offset } of (area && area.paths) || []) {
-      game.tw.after(offset, () => game.fx.kaiju(path.map((p) => ({ x: game.cx(p.c), y: game.cy(p.r) })), KAIJU_STEP / 1000, game.T * 1.7));
-      path.forEach((p, i) => {
-        game.tw.after(offset + (i + 1) * KAIJU_STEP, () => {
-          const x = game.cx(p.c), y = game.cy(p.r);
-          game.fx.ring(x, y, 4, game.STEP * 0.9, 160, 8, '200,255,160');
-          game.fx.burst(x, y, '#8a7a66', 8, 1.2);
-          game.fx.shake(6);
-          game.sound.play('kaiju_stomp');
-          game.kaijuScare(p.r, p.c); // 주변 얼굴들 비명·덜덜
-        });
-      });
-    }
-    game.tw.after(6 * KAIJU_STEP + 4 * 180, () => game.sound.play('special_fart'));
+    for (const { path, offset } of (area && area.paths) || []) kaijuWalk(game, path, offset);
+    game.tw.after((5 + KAIJU_LAND) * KAIJU_STEP + 4 * 180, () => game.sound.play('special_fart'));
     game.tw.after(300, () => game.sound.play('special_kaiju')); // 두 번째 포효
   },
 };
