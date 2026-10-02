@@ -624,7 +624,8 @@ export class Game {
       const f = fresh.splice(Math.floor(Math.random() * fresh.length), 1)[0];
       const idx = this.chars.findIndex((ch) => ch.item === kind);
       if (idx < 0) continue;
-      Object.assign(f.tile, { type: idx, special: true, item: kind });
+      // 드론은 드론끼리 맞출 수 있고(셋 맞추면 5×5), 나머지 아이템은 매치되지 않음
+      Object.assign(f.tile, { type: idx, special: true, item: kind, noMatch: kind !== 'drone' });
       // 시한폭탄: 떨어지는 시간(0.6초) 뒤부터 카운트다운
       if (kind === 'timebomb') { f.tile.fuse = this.tw.time + FUSE_MS + 600; f.tile.shownDigit = -1; }
     }
@@ -685,6 +686,7 @@ export class Game {
     const spawns = [];
     for (const g of m.groups) {
       if (g.cells.length < 4) continue;
+      if (this.chars[g.type] && this.chars[g.type].item) continue; // 드론 줄은 특수 타일을 만들지 않음
       let at = -1;
       if (swapCells) {
         for (const s of swapCells) {
@@ -713,23 +715,34 @@ export class Game {
     const fired = new Set();
     const chained = []; // 다른 특수 효과에 맞아 연쇄 발동하는 특수 타일
     const plays = [];
+    // 드론 셋 이상을 한 줄로 맞추면: 가운데 드론 하나가 5×5로 크게 터지고 나머지 드론은 그냥 사라짐
+    const bigDrone = new Set();
+    for (const g of m.groups) {
+      if (!this.chars[g.type] || this.chars[g.type].item !== 'drone') continue;
+      const sorted = [...g.cells].sort((a, b) => a - b);
+      const mid = sorted[Math.floor(sorted.length / 2)];
+      bigDrone.add(mid);
+      for (const i of sorted) if (i !== mid) { fired.add(i); popAt.set(i, HIT); }
+    }
     for (const i of m.matched) {
-      if (board.cells[i].special) triggers.push({ i, t: HIT });
+      if (fired.has(i)) continue;
+      if (bigDrone.has(i)) triggers.push({ i, t: HIT, effect: EFFECTS.bomb5 });
+      else if (board.cells[i].special) triggers.push({ i, t: HIT });
       else popAt.set(i, HIT);
     }
     while (triggers.length) {
       triggers.sort((a, b) => a.t - b.t);
-      const { i, t } = triggers.shift();
+      const { i, t, effect: override } = triggers.shift();
       if (fired.has(i)) continue;
       fired.add(i);
       const tile = board.cells[i];
       const ch = this.chars[tile.type];
-      const effect = EFFECTS[ch.effect || ch.group];
+      const effect = override || EFFECTS[ch.effect || ch.group];
       popAt.set(i, t);
       if (!effect) continue;
       const [r, c] = board.rc(i);
       const area = effect.area(r, c, rows, cols, board, tile.type);
-      plays.push({ t, effect, r, c, area, type: tile.type });
+      plays.push({ t, effect, r, c, area, type: tile.type, big: !!override });
       for (const a of area) {
         const j = board.idx(a.r, a.c);
         const tt = t + a.delay;
@@ -795,10 +808,11 @@ export class Game {
       this.tw.after(pl.t - HIT, () => {
         pl.effect.play(this, pl.r, pl.c, rows, cols, pl.area);
         this.reactToSpecial(pl, doomed);
-        this.fx.flash(0.35);
-        this.fx.shake(8);
-        this.vibrate(30);
+        this.fx.flash(pl.big ? 0.6 : 0.35);
+        this.fx.shake(pl.big ? 10 : 8);
+        this.vibrate(pl.big ? [40, 30, 60] : 30);
         this.sound.special(this.chars[pl.type]); // 국기 방귀, 테슬라 부르릉, 로켓 콰광 ...
+        if (pl.big) this.sound.play('special_rocket'); // 드론 셋: 더 큰 쾅
       });
     }
     for (const sp of spawns) {

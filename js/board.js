@@ -29,8 +29,8 @@ export class Board {
   rc(idx) { return [Math.floor(idx / this.cols), idx % this.cols]; }
   inBounds(r, c) { return r >= 0 && r < this.rows && c >= 0 && c < this.cols; }
   get(r, c) { return this.inBounds(r, c) ? this.cells[this.idx(r, c)] : null; }
-  // 아이템(지구·시한폭탄·화살표)은 어떤 것과도 매치되지 않는다
-  typeAt(r, c) { const t = this.get(r, c); return t && !t.item ? t.type : -1; }
+  // noMatch 아이템(시한폭탄·비둘기 민병대)은 어떤 것과도 매치되지 않는다 (드론은 드론끼리 매치됨)
+  typeAt(r, c) { const t = this.get(r, c); return t && !t.noMatch ? t.type : -1; }
 
   randomType() { return this.types[Math.floor(this.rng() * this.types.length)]; }
 
@@ -82,7 +82,7 @@ export class Board {
         let runType = -1;
         for (let i = 0; i <= inner; i++) {
           const idx = i < inner ? at(o, i) : -1;
-          const type = idx >= 0 && this.cells[idx] && !this.cells[idx].item ? this.cells[idx].type : -1;
+          const type = idx >= 0 && this.cells[idx] && !this.cells[idx].noMatch ? this.cells[idx].type : -1;
           if (type !== -1 && type === runType) {
             run.push(idx);
           } else {

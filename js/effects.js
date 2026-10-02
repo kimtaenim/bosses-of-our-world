@@ -26,6 +26,31 @@ const bomb = {
   },
 };
 
+const bomb5 = {
+  // 5×5 대폭발 (드론 셋 맞추기): 바깥쪽부터 25ms 시차
+  area(r, c, rows, cols) {
+    const out = [];
+    for (let dr = -2; dr <= 2; dr++) {
+      for (let dc = -2; dc <= 2; dc++) {
+        const rr = r + dr, cc = c + dc;
+        if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) continue;
+        const ring = Math.max(Math.abs(dr), Math.abs(dc)); // 2 바깥, 1 안쪽, 0 중심
+        out.push({ r: rr, c: cc, delay: (2 - ring) * 25 });
+      }
+    }
+    return out;
+  },
+  play(game, r, c) {
+    const x = game.cx(c), y = game.cy(r);
+    game.fx.ring(x, y, 8, game.STEP * 4.5, 360, 10);
+    game.fx.ring(x, y, 6, game.STEP * 2.6, 240, 14, '255,244,214');
+    game.fx.ring(x, y, 4, game.STEP * 1.4, 160, 10, '120,190,255');
+    game.fx.burst(x, y, '#ffffff', 24, 1.8);
+    game.fx.burst(x, y, '#1A7AED', 20, 1.5);
+    game.fx.burst(x, y, '#FFC93C', 16, 1.2);
+  },
+};
+
 const row = {
   // 가로 한 행 전체: 자기 위치에서 양쪽 끝으로 25ms 시차
   area(r, c, rows, cols) {
@@ -146,7 +171,7 @@ const dove = {
 };
 
 export const EFFECTS = {
-  bomb, row, column, sameType, diagonal, xblast, dove,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, dove,
   // 그룹 기본값
   politician: bomb,
   business: row,

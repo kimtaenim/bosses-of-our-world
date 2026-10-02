@@ -95,13 +95,23 @@ test('matchCellsFor lists the line formed after the swap', () => {
   assert.equal(b.typeAt(0, 2), 1); // 원상 복구
 });
 
-test('item tiles never match, even three in a row', () => {
+test('noMatch item tiles never match, even three in a row', () => {
   const b = fromRows([
     '0120',
     '1201',
     '2012',
   ]);
-  for (let c = 0; c < 3; c++) { const t = b.get(0, c); t.type = 9; t.item = 'globe'; t.special = true; }
+  for (let c = 0; c < 3; c++) { const t = b.get(0, c); t.type = 9; t.item = 'timebomb'; t.noMatch = true; t.special = true; }
   assert.equal(b.findMatches().groups.length, 0);
   assert.equal(b.typeAt(0, 0), -1);
+});
+
+test('drone items match each other', () => {
+  const b = fromRows([
+    '0120',
+    '1201',
+    '2012',
+  ]);
+  for (let c = 0; c < 3; c++) { const t = b.get(0, c); t.type = 8; t.item = 'drone'; t.special = true; }
+  assert.equal(b.findMatches().groups.length, 1);
 });
