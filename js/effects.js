@@ -326,9 +326,8 @@ const secrets3 = {
 };
 
 // 카이주: 자기 칸에서 시작해 상하좌우·대각선 이웃 칸으로 한 칸씩 다섯 번 쿵쿵, 밟은 칸을 부숨
-const KAIJU_STEP = 720; // ms, 한 칸 (멈춤 + 왼발 + 오른발 + 착지)
+const KAIJU_STEP = 900; // ms, 한 칸 (멈춤 + 왼발 + 오른발 + 착지) — 천천히 무섭게
 const KAIJU_LAND = 0.85; // 한 칸 안에서 착지하는 시점 (fx.js KAIJU_PAUSE + KAIJU_MOVE)
-const KAIJU_LEFT = 0.42; // 왼발 디디는 시점
 const kaiju = {
   area(r, c, rows, cols) {
     const path = [{ r, c }];
@@ -359,18 +358,18 @@ const kaiju = {
   },
 };
 
-// 카이주 한 마리가 path를 따라 걷는 연출: 왼발 "라"(팀파니), 착지 "미" + 쿵 + 부수기 + 주변 얼굴 비명
+// 카이주 한 마리가 path를 따라 걷는 연출. 한 칸에 소리 하나씩:
+//   첫 칸은 포효 "캬오오", 다음 칸부터 착지할 때 팀파니 라 → 미 → 라 → 미, 그리고 사라짐
 function kaijuWalk(game, path, offset) {
   game.tw.after(offset, () => game.fx.kaiju(path.map((p) => ({ x: game.cx(p.c), y: game.cy(p.r) })), KAIJU_STEP / 1000, game.T * 1.2));
   path.slice(1).forEach((p, i) => {
     const base = offset + i * KAIJU_STEP;
-    game.tw.after(base + KAIJU_LEFT * KAIJU_STEP, () => { game.sound.play('timpani', 0); game.fx.shake(2); }); // 라
     game.tw.after(base + KAIJU_LAND * KAIJU_STEP, () => {
       const x = game.cx(p.c), y = game.cy(p.r);
       game.fx.ring(x, y, 4, game.STEP * 0.9, 160, 8, '200,255,160');
       game.fx.burst(x, y, '#8a7a66', 10, 1.2); // 부서진 잔해
       game.fx.shake(5);
-      game.sound.play('timpani', 1); // 미
+      if (i > 0) game.sound.play('timpani', (i - 1) % 2); // 라, 미, 라, 미
       game.sound.play('kaiju_stomp');
       game.kaijuScare(p.r, p.c); // 주변 얼굴들 비명·덜덜
     });
