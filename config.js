@@ -15,6 +15,11 @@ export const CONFIG = {
   TARGET_BASE: 1000,
   TARGET_STEP: 100,
 
+  // 아이템(드론·시한폭탄) 나오는 확률: 지울 때마다 1/ITEM_ODDS. ITEM_ODDS_FROM판부터 판마다 1씩 늘어 점점 드물게
+  // (29판까지 1/10, 30판 1/11, 31판 1/12 ...)
+  ITEM_ODDS: 10,
+  ITEM_ODDS_FROM: 30,
+
   // 타임 보너스: 판을 정해진 초 안에 깨면 남은 1초마다 TIME_BONUS_PER_SEC점 (전체 점수에 더함)
   // 보너스 시간 = 인물 수별 기본(4명 60초, 5명 이상 120초) + 판마다 TIME_BONUS_SEC_STEP초
   TIME_BONUS_SEC: { 4: 60, 5: 120 },
@@ -23,9 +28,9 @@ export const CONFIG = {
   TIME_BONUS_SEC_STEP: 3,
 
   // 입력이 없을 때 힌트까지 대기 시간
-  HINT_DELAY_MS: 2000,
+  HINT_DELAY_MS: 20000,
   // 이 시간 동안 하나도 못 맞추면(헛스왑 포함) 맞출 곳을 금빛으로 표시
-  SPOTLIGHT_DELAY_MS: 10000,
+  SPOTLIGHT_DELAY_MS: 20000,
 
   // 평소 딴짓(눈 굴리기·곁눈질·깜빡임·깡충) 빈도 배율. 0이면 가만히 있음.
   IDLE_ACTIVITY: 1.8,

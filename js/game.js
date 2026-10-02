@@ -636,9 +636,17 @@ export class Game {
   rollItems(m, cascade, swapCells) {
     // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 비둘기 민병대 (1판부터)
     if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('dove');
-    // 11판부터 시한폭탄, 21판부터 드론: 지울 때마다 10%
-    if (this.level >= 11 && Math.random() < 0.1) this.pendingItems.push('timebomb');
-    if (this.level >= 21 && Math.random() < 0.1) this.pendingItems.push('drone');
+    // 11판부터 시한폭탄, 21판부터 드론: 지울 때마다 1/10 (30판부터 판마다 점점 드물게)
+    const p = 1 / this.itemOdds();
+    if (this.level >= 11 && Math.random() < p) this.pendingItems.push('timebomb');
+    if (this.level >= 21 && Math.random() < p) this.pendingItems.push('drone');
+  }
+
+  // 아이템 확률의 분모: 29판까지 10, 30판 11, 31판 12 ...
+  itemOdds() {
+    const base = this.cfg.ITEM_ODDS || 10;
+    const from = this.cfg.ITEM_ODDS_FROM || 30;
+    return base + Math.max(0, this.level - from + 1);
   }
 
   // 시한폭탄: 숫자가 바뀔 때 삑, 0이 지나면 (다른 연출이 끝난 뒤) 폭발
