@@ -366,6 +366,44 @@ const kaiju = {
   },
 };
 
+// 카이주 셋: 판 곳곳에서 카이주 다섯 마리가 나타나 각자 다섯 칸씩 쿵쿵 누비고 다님
+const kaiju5 = {
+  area(r, c, rows, cols) {
+    const out = [{ r, c, delay: 0 }];
+    const paths = [];
+    for (let k = 0; k < 5; k++) {
+      const sr = Math.floor(Math.random() * rows), sc = Math.floor(Math.random() * cols);
+      const one = kaiju.area(sr, sc, rows, cols);
+      const offset = k * 180;
+      paths.push({ path: one.path, offset });
+      for (const a of one) {
+        const d = a.delay + offset + KAIJU_STEP;
+        const prev = out.find((o) => o.r === a.r && o.c === a.c);
+        if (prev) prev.delay = Math.min(prev.delay, d);
+        else out.push({ r: a.r, c: a.c, delay: d });
+      }
+    }
+    out.paths = paths;
+    return out;
+  },
+  play(game, r, c, rows, cols, area) {
+    for (const { path, offset } of (area && area.paths) || []) {
+      game.tw.after(offset, () => game.fx.kaiju(path.map((p) => ({ x: game.cx(p.c), y: game.cy(p.r) })), KAIJU_STEP / 1000, game.T * 1.7));
+      path.forEach((p, i) => {
+        game.tw.after(offset + (i + 1) * KAIJU_STEP, () => {
+          const x = game.cx(p.c), y = game.cy(p.r);
+          game.fx.ring(x, y, 4, game.STEP * 0.9, 160, 8, '200,255,160');
+          game.fx.burst(x, y, '#8a7a66', 8, 1.2);
+          game.fx.shake(6);
+          game.sound.play('kaiju_stomp');
+        });
+      });
+    }
+    game.tw.after(6 * KAIJU_STEP + 4 * 180, () => game.sound.play('special_fart'));
+    game.tw.after(300, () => game.sound.play('special_kaiju')); // 두 번째 포효
+  },
+};
+
 const missile3 = {
   // ICBM 셋: 자기 열과 양옆 열, 세로 세 줄 전체 + 미사일 세 발
   area(r, c, rows, cols) {
@@ -417,7 +455,7 @@ const screen = {
 };
 
 export const EFFECTS = {
-  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen, droneStrike, droneStrike3, ufoStrike, ufoStrike3, secrets, secrets3, kaiju,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen, droneStrike, droneStrike3, ufoStrike, ufoStrike3, secrets, secrets3, kaiju, kaiju5,
   // 그룹 기본값
   politician: bomb,
   business: row,

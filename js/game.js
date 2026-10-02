@@ -709,11 +709,11 @@ export class Game {
     if (this.level >= 11 && Math.random() < 1 / this.itemOdds()) this.pendingItems.push('timebomb');
     // 21판부터 드론: 처음엔 1/6, 판마다 점점 드물게 (22판 1/7, 23판 1/8 …)
     if (this.level >= 21 && Math.random() < 1 / (6 + this.level - 21)) this.pendingItems.push('drone');
-    // 31판부터 관세: 처음엔 1/8, 판마다 점점 드물게
-    if (this.level >= 31 && Math.random() < 1 / (8 + this.level - 31)) this.pendingItems.push('tariff');
-    // 41판 UFO, 51판 카이주, 61판 핵폭탄, 71판 기밀 파일: 처음엔 1/8(핵폭탄 1/10), 판마다 점점 드물게
+    // 31판부터 카이주: 처음엔 1/8, 판마다 점점 드물게
+    if (this.level >= 31 && Math.random() < 1 / (8 + this.level - 31)) this.pendingItems.push('kaiju');
+    // 41판 UFO, 51판 관세, 61판 핵폭탄, 71판 기밀 파일: 처음엔 1/8(핵폭탄 1/10), 판마다 점점 드물게
     if (this.level >= 41 && Math.random() < 1 / (8 + this.level - 41)) this.pendingItems.push('ufo');
-    if (this.level >= 51 && Math.random() < 1 / (8 + this.level - 51)) this.pendingItems.push('kaiju');
+    if (this.level >= 51 && Math.random() < 1 / (8 + this.level - 51)) this.pendingItems.push('tariff');
     if (this.level >= 61 && Math.random() < 1 / (10 + this.level - 61)) this.pendingItems.push('nuke');
     if (this.level >= 71 && Math.random() < 1 / (8 + this.level - 71)) this.pendingItems.push('secrets');
   }
@@ -792,7 +792,7 @@ export class Game {
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
     //   NUKE·ICBM 셋 → 화면 전체 폭발, 드론 셋 → 날아가서 3×3
-    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3, tariff: EFFECTS.bomb, ufo: EFFECTS.ufoStrike3, secrets: EFFECTS.secrets3, kaiju: EFFECTS.bomb5 };
+    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3, tariff: EFFECTS.bomb, ufo: EFFECTS.ufoStrike3, secrets: EFFECTS.secrets3, kaiju: EFFECTS.kaiju5 };
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
