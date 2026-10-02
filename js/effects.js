@@ -465,8 +465,34 @@ const screen = {
   },
 };
 
+// 방사능 홍차 (푸틴): 꿀꺽꿀꺽 마신 뒤, 주변 3×3이 터지는 대신 가운데로 쑤욱 빨려 들어가며 사라짐
+export const TEA_GULP_MS = 650;
+const teaSink = {
+  area(r, c, rows, cols) {
+    const out = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const rr = r + dr, cc = c + dc;
+        if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) continue;
+        const ring = Math.max(Math.abs(dr), Math.abs(dc));
+        out.push({ r: rr, c: cc, delay: ring ? TEA_GULP_MS + (Math.abs(dr) + Math.abs(dc)) * 40 : TEA_GULP_MS + 160, sink: { r, c } });
+      }
+    }
+    return out;
+  },
+  play(game, r, c) {
+    const x = game.cx(c), y = game.cy(r);
+    // 마시는 동안 초록 김이 피어오르고, 꺼져 들어갈 때 소용돌이 고리가 안으로 조여듦
+    game.fx.burst(x, y, '#9BFF8A', 10, 0.6);
+    game.tw.after(TEA_GULP_MS, () => {
+      game.fx.ring(x, y, game.STEP * 1.7, 4, 420, 10, '150,255,130');
+      game.fx.ring(x, y, game.STEP * 1.2, 2, 360, 6, '255,220,80');
+    });
+  },
+};
+
 export const EFFECTS = {
-  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen, droneStrike, droneStrike3, ufoStrike, ufoStrike3, secrets, secrets3, kaiju, kaiju5,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen, droneStrike, droneStrike3, ufoStrike, ufoStrike3, secrets, secrets3, kaiju, kaiju5, teaSink,
   // 그룹 기본값
   politician: bomb,
   business: row,

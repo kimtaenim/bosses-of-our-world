@@ -789,6 +789,7 @@ export class Game {
     const triggers = [];
     const fired = new Set();
     const chained = []; // 다른 특수 효과에 맞아 연쇄 발동하는 특수 타일
+    const sinkTo = new Map(); // idx → 빨려 들어갈 칸 (방사능 홍차)
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
     //   NUKE·ICBM 셋 → 화면 전체 폭발, 드론 셋 → 날아가서 3×3
@@ -825,6 +826,7 @@ export class Game {
       for (const a of area) {
         const j = board.idx(a.r, a.c);
         const tt = t + a.delay;
+        if (a.sink) sinkTo.set(j, a.sink); // 터지지 않고 빨려 들어감
         if (j === i) { popAt.set(i, tt); continue; }
         const other = board.cells[j];
         if (!other) continue;
@@ -870,8 +872,11 @@ export class Game {
       const d = e.t - HIT;
       end = Math.max(end, d + 120);
       const [pr, pc] = board.rc(e.i);
+      const sink = sinkTo.get(e.i);
+      if (sink) end = Math.max(end, d + 420);
       this.tw.after(d, () => {
-        this.popTile(e.tile, e.tile.special ? 2 : 1);
+        if (sink) this.sinkTile(e.tile, sink);
+        else this.popTile(e.tile, e.tile.special ? 2 : 1);
         this.reactAround(pr, pc);
       });
     }
@@ -1056,6 +1061,19 @@ export class Game {
       t.alpha = 1 - p;
       t.flash = Math.max(0, 1 - p * 2.5); // 터지는 순간 하얗게 번쩍
     }, ease.outQuad);
+  }
+
+  // 쑤욱: 가운데 칸으로 빙글 돌며 빨려 들어가 작아지고 사라짐 (방사능 홍차)
+  sinkTile(t, to) {
+    this.faces.set(t, 'fall', Infinity, PRIO.DOOM);
+    const x0 = t.x, y0 = t.y, spin = (Math.random() < 0.5 ? -1 : 1) * Math.PI * 1.5;
+    return this.tw.tween(400, (p) => {
+      t.x = x0 + (to.c - x0) * p;
+      t.y = y0 + (to.r - y0) * p;
+      t.scale = 1 - p;
+      t.rot = spin * p;
+      t.alpha = 1 - p * p;
+    }, ease.inQuad).then(() => { t.alpha = 0; });
   }
 
   // 등가속 낙하 + 착지 스쿼시 + 먼지
