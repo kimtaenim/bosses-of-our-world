@@ -5,7 +5,7 @@ import { Sprites } from './sprites.js';
 import { targetScore } from '../config.js';
 import { loadProgress, saveProgress } from './storage.js';
 import { EFFECTS } from './effects.js';
-import { FUSE_MS, SHAKE_MS, FUSE_FROM, KAIJU_FRAMES } from './items.js';
+import { FUSE_MS, SHAKE_MS, FUSE_FROM, KAIJU_FRAMES, KAIJU_STILL } from './items.js';
 import { Sound } from './audio.js';
 import { Faces, PRIO } from './faces.js';
 
@@ -73,9 +73,7 @@ export class Game {
   // firstLevel을 주지 않으면 저장된 판·점수에서 이어한다
   async init(firstLevel = null) {
     await this.sprites.load();
-    // 카이주 걷기 그림 (없으면 코드 그림으로 걸음)
-    Promise.all(KAIJU_FRAMES.map((src) => new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; })))
-      .then((frames) => { if (frames.every(Boolean)) this.fx.kaijuFrames = frames; });
+    this.loadKaijuFrames();
     // prefers-reduced-motion: 흔들림·파티클 자동 비활성
     const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mq) {
@@ -156,6 +154,7 @@ export class Game {
     this.level = level;
     this.pendingItems = [];
     this.deferredKaiju = [];
+    if (this.fx.kaijuFrames?.some((f) => !f)) this.loadKaijuFrames(); // 못 받은 카이주 그림 다시
     this.fullShuffle = false;
     this.levelT0 = this.tw.time - elapsed;
     this.spot = null;
@@ -442,6 +441,19 @@ export class Game {
       tb.x = to.c + (from.c - to.c) * p;
       tb.y = to.r + (from.r - to.r) * p;
     }, overshoot(o));
+  }
+
+  // 카이주 그림 (걷기 3장 + 타일 그림). 못 받은 장은 몇 번 다시 받아본다.
+  loadKaijuFrames(tries = 3) {
+    const srcs = [...KAIJU_FRAMES, KAIJU_STILL];
+    const frames = this.fx.kaijuFrames || (this.fx.kaijuFrames = srcs.map(() => null));
+    srcs.forEach((src, i) => {
+      if (frames[i]) return;
+      const im = new Image();
+      im.onload = () => { frames[i] = im; };
+      im.onerror = () => { if (tries > 1) setTimeout(() => this.loadKaijuFrames(tries - 1), 1500); };
+      im.src = src;
+    });
   }
 
   // ---------- 매치 해결 루프 ----------

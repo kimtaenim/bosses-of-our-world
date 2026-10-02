@@ -1,4 +1,4 @@
-import { drawDroneShape, drawUfoShape, drawKaijuShape } from './emblems.js';
+import { drawDroneShape, drawUfoShape } from './emblems.js';
 
 // 카이주 걸음 한 칸 안의 비율: 처음 PAUSE 동안 멈춰 섰다가 MOVE 동안 왼발·오른발로 이동, 나머지는 착지해 서 있음
 export const KAIJU_PAUSE = 0.2;
@@ -307,12 +307,13 @@ export class FX {
       if (b.x !== a.x) k.face = b.x < a.x ? -1 : 1;
       if ((k.face || 1) < 0) ctx.scale(-1, 1);
       const grow = 1 + (end ? 0.3 * (1 - fade) : 0);
-      if (this.kaijuFrames) {
-        const frame = end || q < KAIJU_PAUSE || m >= 1 ? 2 : m < 0.5 ? 0 : 1; // 서기 / 왼발 / 오른발
+      // 사용자 카이주 그림만 씀: 그 장이 아직 없으면 받아 둔 다른 장(걷기 → 타일 그림)으로
+      const frames = this.kaijuFrames || [];
+      const frame = end || q < KAIJU_PAUSE || m >= 1 ? 2 : m < 0.5 ? 0 : 1; // 서기 / 왼발 / 오른발
+      const img = frames[frame] || frames[2] || frames[0] || frames[1] || frames[3];
+      if (img) {
         const w = k.size * grow;
-        ctx.drawImage(this.kaijuFrames[frame], -w / 2, -w * 0.6, w, w);
-      } else {
-        drawKaijuShape(ctx, 0, 0, k.size * grow, i === 0 && q < KAIJU_PAUSE ? 1 : 0.4 + 0.3 * Math.sin(k.t * 20));
+        ctx.drawImage(img, -w / 2, -w * 0.6, w, w);
       }
       ctx.restore();
     }

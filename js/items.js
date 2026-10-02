@@ -22,6 +22,7 @@ export const ITEMS = [
 ];
 
 // 카이주 걷기 그림 3장 (오른쪽을 봄, 배경 투명): 왼발 / 오른발 / 서 있기
+export const KAIJU_STILL = 'assets/special/kaiju.webp';
 export const KAIJU_FRAMES = ['assets/special/kaiju-walk-a.webp', 'assets/special/kaiju-walk-b.webp', 'assets/special/kaiju-walk-c.webp'];
 
 // 시한폭탄 카운트다운: FUSE_FROM부터 1까지 각 1초, 0이 되면 SHAKE_MS 동안 부르르 떨고 바로 폭발.

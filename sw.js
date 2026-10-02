@@ -1,7 +1,7 @@
 // 서비스 워커: 앱 셸 선캐시 + 네트워크 우선 (오프라인이면 캐시).
 // 예전 파일과 새 파일이 섞여 게임이 멈추는 일이 없도록 항상 최신 파일을 먼저 받는다.
 // 파일을 바꿔 배포하면 VERSION을 올린다.
-const VERSION = 'v122';
+const VERSION = 'v123';
 const CACHE = `bosses-${VERSION}`;
 const SHELL = [
   './',
@@ -23,6 +23,10 @@ const SHELL = [
   'js/faces.js',
   'js/emblems.js',
   'js/items.js',
+  'assets/special/kaiju.webp',
+  'assets/special/kaiju-walk-a.webp',
+  'assets/special/kaiju-walk-b.webp',
+  'assets/special/kaiju-walk-c.webp',
   'assets/fonts/rye-latin.woff2',
   'icons/icon-192.png',
   'icons/favicon-32.png',
