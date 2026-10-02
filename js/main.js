@@ -34,10 +34,10 @@ async function main() {
   const game = new Game(canvas, characters, data, config, hud);
   attachInput(canvas, game);
   const mute = document.getElementById('mute');
-  // "Sound O" (초록) / "Sound X" (빨강) 로 켜짐·꺼짐을 한눈에
+  // "sound O" (초록) / "sound X" (빨강) 로 켜짐·꺼짐을 한눈에
   const renderMute = () => {
     const on = !game.sound.muted;
-    mute.innerHTML = `Sound <b class="${on ? 'on' : 'off'}">${on ? 'O' : 'X'}</b>`;
+    mute.innerHTML = `sound <b class="${on ? 'on' : 'off'}">${on ? 'O' : 'X'}</b>`;
     mute.setAttribute('aria-pressed', on ? 'true' : 'false');
   };
   renderMute();
