@@ -21,6 +21,8 @@ export const CONFIG = {
   // 아이템(핵폭탄·시한폭탄) 나오는 확률: 지울 때마다 1/ITEM_ODDS. ITEM_ODDS_FROM판부터 판마다 1씩 늘어 점점 드물게
   // (20판까지 1/10, 21판 1/11, 22판 1/12 ...)
   ITEM_ODDS: 10,
+  // ICBM: 두 줄 동시에 지울 때 말고도, 지울 때마다 1/ICBM_ODDS 확률로 내려옴 (작을수록 자주)
+  ICBM_ODDS: 12,
   ITEM_ODDS_FROM: 21,
 
   // 타임 보너스: 판을 정해진 초 안에 깨면 남은 1초마다 TIME_BONUS_PER_SEC점 (전체 점수에 더함)

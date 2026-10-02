@@ -151,6 +151,7 @@ export class Game {
   async startLevel(level, score = 0, elapsed = 0) {
     this.level = level;
     this.pendingItems = [];
+    this.fullShuffle = false;
     this.levelT0 = this.tw.time - elapsed;
     this.spot = null;
     this.score = score;
@@ -457,6 +458,7 @@ export class Game {
       await this.animateFalls(this.collapse());
     }
     // 가능한 수가 없으면 알림 없이 셔플
+    if (this.fullShuffle) { this.fullShuffle = false; await this.shuffleBoard(); return; }
     if (!this.board.findMove()) await this.shuffleBoard();
   }
 
@@ -686,7 +688,7 @@ export class Game {
       const idx = this.chars.findIndex((ch) => ch.item === kind);
       if (idx < 0) continue;
       // 핵폭탄·ICBM은 같은 것끼리 맞출 수 있고(셋 맞추면 대폭발), 시한폭탄은 매치되지 않음
-      Object.assign(f.tile, { type: idx, special: true, item: kind, noMatch: kind === 'timebomb' || kind === 'tariff' });
+      Object.assign(f.tile, { type: idx, special: true, item: kind, noMatch: kind === 'timebomb' });
       // 시한폭탄: 떨어지는 시간(0.6초) 뒤부터 카운트다운
       if (kind === 'timebomb') { f.tile.fuse = this.tw.time + FUSE_MS + 600; f.tile.shownDigit = -1; }
     }
@@ -698,6 +700,8 @@ export class Game {
   rollItems(m, cascade, swapCells) {
     // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 ICBM 미사일 (1판부터)
     if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('missile');
+    // ICBM은 1판부터 지울 때마다 1/ICBM_ODDS 확률로도 내려옴 (두 줄 동시 지우기와 별개)
+    if (Math.random() < 1 / (this.cfg.ICBM_ODDS || 12)) this.pendingItems.push('missile');
     // 11판부터 시한폭탄, 21판부터 핵폭탄: 지울 때마다 1/10 (21판부터 판마다 점점 드물게)
     const p = 1 / this.itemOdds();
     if (this.level >= 11 && Math.random() < p) this.pendingItems.push('timebomb');
@@ -782,7 +786,7 @@ export class Game {
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
     //   NUKE·ICBM 셋 → 화면 전체 폭발, 드론 셋 → 날아가서 3×3
-    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3 };
+    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3, tariff: EFFECTS.bomb };
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
@@ -790,6 +794,7 @@ export class Game {
       const sorted = [...g.cells].sort((a, b) => a - b);
       const mid = sorted[Math.floor(sorted.length / 2)];
       bigAt.set(mid, big);
+      if (this.chars[g.type].item === 'tariff') this.fullShuffle = true; // 관세 셋: 3×3 터지고 나서 전체 리셔플
       for (const i of sorted) if (i !== mid) { fired.add(i); popAt.set(i, HIT); }
     }
     for (const i of m.matched) {
