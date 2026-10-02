@@ -721,7 +721,7 @@ export class Game {
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
-      if (!big) continue;
+      if (!big || g.cells.length < 3) continue; // 하나만 누른 건 보통 크기 (셋 이상 맞춰야 대폭발)
       const sorted = [...g.cells].sort((a, b) => a - b);
       const mid = sorted[Math.floor(sorted.length / 2)];
       bigAt.set(mid, big);
