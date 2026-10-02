@@ -568,14 +568,14 @@ export const EMBLEMS = {
     });
   },
 
-  // UFO: 보라 밤하늘에 비행접시 + 위에 작은 'UFO'
+  // UFO: 보라 밤하늘에 비행접시 + 위에 작은 'ALIEN'
   ufo(ctx, T, color) {
     iconBg(ctx, T, color, () => {
       ctx.shadowColor = 'transparent';
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       for (const [x, y, r] of [[0.15, 0.3, 0.012], [0.85, 0.36, 0.01], [0.78, 0.85, 0.012], [0.2, 0.82, 0.01]]) { ctx.beginPath(); ctx.arc(x * T, y * T, r * T, 0, Math.PI * 2); ctx.fill(); }
       drawUfoShape(ctx, T / 2, T * 0.58, T * 0.82, 0);
-      label(ctx, T, 'UFO');
+      label(ctx, T, 'ALIEN');
     });
   },
 
