@@ -296,10 +296,21 @@ export class FX {
       ctx.save();
       ctx.globalAlpha = fade;
       ctx.translate(x, y);
-      if (b.x < a.x) ctx.scale(-1, 1); // 가는 쪽을 봄
-      const squash = 1 + Math.sin(Math.min(p * 2, 1) * Math.PI) * 0.06;
-      ctx.scale(1, squash);
-      drawKaijuShape(ctx, 0, 0, k.size * (1 + (end ? 0.3 * (1 - fade) : 0)), i === 0 && p < 0.6 ? 1 : 0.4 + 0.3 * Math.sin(k.t * 20));
+      // 가는 쪽을 봄 (그림은 오른쪽을 보고 있음). 마지막 방향 유지
+      if (b.x !== a.x) k.face = b.x < a.x ? -1 : 1;
+      if ((k.face || 1) < 0) ctx.scale(-1, 1);
+      const grow = 1 + (end ? 0.3 * (1 - fade) : 0);
+      if (this.kaijuFrames) {
+        // 걸음마다 왼발·오른발 번갈아, 착지 순간과 마지막엔 서 있는 그림
+        const stand = end || p > 0.85;
+        const img = this.kaijuFrames[stand ? 2 : i % 2];
+        const w = k.size * grow;
+        ctx.drawImage(img, -w / 2, -w * 0.62, w, w);
+      } else {
+        const squash = 1 + Math.sin(Math.min(p * 2, 1) * Math.PI) * 0.06;
+        ctx.scale(1, squash);
+        drawKaijuShape(ctx, 0, 0, k.size * grow, i === 0 && p < 0.6 ? 1 : 0.4 + 0.3 * Math.sin(k.t * 20));
+      }
       ctx.restore();
     }
     for (const d of this.drones) {

@@ -352,7 +352,7 @@ const kaiju = {
   },
   play(game, r, c, rows, cols, area) {
     const path = (area && area.path) || [{ r, c }];
-    game.fx.kaiju(path.map((p) => ({ x: game.cx(p.c), y: game.cy(p.r) })), KAIJU_STEP / 1000, game.T * 1.15);
+    game.fx.kaiju(path.map((p) => ({ x: game.cx(p.c), y: game.cy(p.r) })), KAIJU_STEP / 1000, game.T * 1.7);
     path.slice(1).forEach((p, i) => {
       game.tw.after((i + 1) * KAIJU_STEP, () => {
         const x = game.cx(p.c), y = game.cy(p.r);

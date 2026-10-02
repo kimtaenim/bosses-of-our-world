@@ -5,7 +5,7 @@ import { Sprites } from './sprites.js';
 import { targetScore } from '../config.js';
 import { loadProgress, saveProgress } from './storage.js';
 import { EFFECTS } from './effects.js';
-import { FUSE_MS, SHAKE_MS, FUSE_FROM } from './items.js';
+import { FUSE_MS, SHAKE_MS, FUSE_FROM, KAIJU_FRAMES } from './items.js';
 import { Sound } from './audio.js';
 import { Faces, PRIO } from './faces.js';
 
@@ -72,6 +72,9 @@ export class Game {
   // firstLevel을 주지 않으면 저장된 판·점수에서 이어한다
   async init(firstLevel = null) {
     await this.sprites.load();
+    // 카이주 걷기 그림 (없으면 코드 그림으로 걸음)
+    Promise.all(KAIJU_FRAMES.map((src) => new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; })))
+      .then((frames) => { if (frames.every(Boolean)) this.fx.kaijuFrames = frames; });
     // prefers-reduced-motion: 흔들림·파티클 자동 비활성
     const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mq) {

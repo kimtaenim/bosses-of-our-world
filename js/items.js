@@ -11,7 +11,7 @@
 // special에 적힌 그림 파일(정사각)이 있으면 코드 그림 대신 그 그림을 쓴다.
 
 export const ITEMS = [
-  { id: 'kaiju', item: 'kaiju', name: '카이주', group: 'item', color: '#3E2A1E', initial: 'K', emblem: 'kaiju', effect: 'kaiju' },
+  { id: 'kaiju', item: 'kaiju', name: '카이주', group: 'item', color: '#14151A', initial: 'K', emblem: 'kaiju', effect: 'kaiju', special: 'assets/special/kaiju.webp', label: 'KAIJU' },
   { id: 'ufo', item: 'ufo', name: 'UFO', group: 'item', color: '#2B1B4E', initial: 'U', emblem: 'ufo', effect: 'ufoStrike' },
   { id: 'secrets', item: 'secrets', name: '기밀 파일', group: 'item', color: '#3B4A3F', initial: 'S', emblem: 'secrets', effect: 'secrets' },
   { id: 'tariff', item: 'tariff', name: '관세', group: 'item', color: '#B3261E', initial: 'T', emblem: 'tariff' },
@@ -20,6 +20,9 @@ export const ITEMS = [
   { id: 'timebomb', item: 'timebomb', name: '시한폭탄', group: 'item', color: '#3A3F4F', initial: 'B', emblem: 'timebomb', effect: 'xblast' },
   { id: 'missile', item: 'missile', name: 'ICBM 미사일', group: 'item', color: '#2E4057', initial: 'M', emblem: 'missile', effect: 'missile' },
 ];
+
+// 카이주 걷기 그림 3장 (오른쪽을 봄, 배경 투명): 왼발 / 오른발 / 서 있기
+export const KAIJU_FRAMES = ['assets/special/kaiju-walk-a.webp', 'assets/special/kaiju-walk-b.webp', 'assets/special/kaiju-walk-c.webp'];
 
 // 시한폭탄 카운트다운: FUSE_FROM부터 1까지 각 1초, 0이 되면 SHAKE_MS 동안 부르르 떨고 바로 폭발.
 // 눌러도, 다른 폭발에 휘말려도 안 터진다 — 시간이 되어야만 터짐.
