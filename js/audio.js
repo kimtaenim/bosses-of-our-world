@@ -6,8 +6,8 @@
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
 //     anthem 성조기: 마림바 "솔미도미솔도" (성조기여 영원하라 첫 구절)
 //     fart 인공기·러시아 국기 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
-//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / nuke 핵폭탄 거대한 방귀 / boom 그 밖
-//     missile ICBM 짧은 방귀 / 시한폭탄은 rocket 콰광
+//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / nuke 핵폭탄 거대한 설사 방귀 / boom 그 밖
+//     missile ICBM 설사 방귀 / 시한폭탄은 rocket 콰광
 //   beep    시한폭탄 카운트다운 삑
 //   clear   판 클리어 (철퍼덕 와르르)
 
@@ -524,6 +524,48 @@ export class Sound {
     for (const x of [o, vib]) { x.start(t); x.stop(t + dur + 0.03); }
   }
 
+  // 설사 방귀: 짧게 끊기는 "뿌지직 뿌드득 뿌다닥" + 질척한 물소리 + 뽀글거리는 기포, 끝에 철퍼덕
+  wetFart(size = 1, delay = 0, vol = 0.7) {
+    const ctx = this.ctx;
+    const n = Math.round(4 + size * 4);
+    let t0 = delay;
+    for (let i = 0; i < n; i++) {
+      const dur = 0.05 + Math.random() * 0.1;
+      const t = this.t0 + t0;
+      const p = 0.7 + Math.random() * 0.6;
+      const o = ctx.createOscillator();
+      const f = ctx.createBiquadFilter();
+      const am = ctx.createGain();
+      const flut = ctx.createOscillator();
+      const fg = ctx.createGain();
+      const g = ctx.createGain();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(95 * p, t);
+      o.frequency.linearRampToValueAtTime(65 * p, t + dur);
+      flut.type = 'square';
+      flut.frequency.value = 35 + Math.random() * 35; // 불규칙하게 덜덜
+      fg.gain.value = 0.5;
+      am.gain.value = 0.5;
+      flut.connect(fg).connect(am.gain);
+      f.type = 'lowpass';
+      f.Q.value = 9;
+      f.frequency.setValueAtTime(900 * p, t);
+      f.frequency.exponentialRampToValueAtTime(350 * p, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * (0.6 + Math.random() * 0.4), t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(f).connect(am).connect(g).connect(this.gain);
+      for (const x of [o, flut]) { x.start(t); x.stop(t + dur + 0.02); }
+      // 물기: 끊길 때마다 질척
+      this.squelch(t0, dur * 1.3, 1600 * p, 300, vol * 0.7, 10, 30);
+      if (Math.random() < 0.6) this.bubble(t0 + dur * 0.7, 250 + Math.random() * 400, 0.03, 0.18);
+      t0 += dur + 0.01 + Math.random() * 0.04;
+    }
+    // 마무리: 철퍼덕 + 뚝뚝
+    this.splat(1.2 + size * 0.3, t0, 0);
+    for (let i = 0; i < 4; i++) this.bubble(t0 + 0.15 + i * 0.06, 300 + Math.random() * 500, 0.03, 0.15);
+  }
+
   // ---------- 효과음 ----------
 
   synth(name, semitone) {
@@ -621,14 +663,13 @@ export class Sound {
         this.tone('sine', 1568, 1568, 0.25, 0.27, 0.13);
         this.tone('sine', 2093, 2093, 0.3, 0.16, 0.22);
         break;
-      case 'special_nuke': // 핵폭탄: 길고 거대한 방귀 "뿌우우우우웅~~ 뿡" + 우르릉
-        this.fart(1.9, 0, 0.6);
-        this.fart(1.5, 0.12, 0.5);
-        this.tone('sine', 70, 25, 1.3, 0.35, 0.05);
+      case 'special_nuke': // 핵폭탄: 길고 거대한 설사 방귀 + 우르릉
+        this.wetFart(2, 0, 0.55);
+        this.fart(1.6, 0.05, 0.3);
+        this.tone('sine', 70, 25, 1.3, 0.3, 0.05);
         break;
-      case 'special_missile': // ICBM: 발사도 방귀 "뿌웅!" 짧고 힘차게 + 철퍽
-        this.fart(0.7);
-        this.splat(1.1, 0.05);
+      case 'special_missile': // ICBM: 발사도 설사 방귀 "뿌지직!"
+        this.wetFart(0.8, 0, 0.65);
         break;
       case 'beep': // 시한폭탄 카운트다운 "삑" (semitone 7이면 0초: 더 높게)
         this.tone('square', 1320 * k, 1320 * k, 0.07, 0.16);
