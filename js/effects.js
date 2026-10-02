@@ -328,41 +328,54 @@ const secrets3 = {
 // 카이주: 자기 칸에서 시작해 상하좌우·대각선 이웃 칸으로 한 칸씩 다섯 번 쿵쿵, 밟은 칸을 부숨
 const KAIJU_STEP = 600; // ms, 한 칸 (멈춤 + 왼발 + 오른발 + 착지) — 다섯 칸 3초
 const KAIJU_LAND = 0.85; // 한 칸 안에서 착지하는 시점 (fx.js KAIJU_PAUSE + KAIJU_MOVE)
+// 카이주 경로 하나: 4~5발자국 걸어 화면 왼쪽·오른쪽 밖으로
+function kaijuPath(r, c, rows, cols) {
+  const n = 4 + Math.floor(Math.random() * 2);
+  const sides = [];
+  if (c + 1 <= n) sides.push(-1);      // 왼쪽으로 나가는 데 필요한 걸음 c+1
+  if (cols - c <= n) sides.push(1);    // 오른쪽 cols-c
+  const dir = sides[Math.floor(Math.random() * sides.length)] || (c < cols / 2 ? -1 : 1);
+  const need = dir < 0 ? c + 1 : cols - c;
+  // 마지막 걸음은 반드시 옆으로 (밖으로 나가는 걸음)
+  const moves = Array(n - need).fill('v').concat(Array(need - 1).fill('h'));
+  for (let i = moves.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [moves[i], moves[j]] = [moves[j], moves[i]]; }
+  moves.push('h');
+  // 위아래로 갈 때는 한 방향(여유가 많은 쪽)으로만 → 왔던 칸을 되밟지 않음
+  const vdir = r >= rows - 1 - r ? -1 : 1;
+  const path = [{ r, c }];
+  let cur = { r, c };
+  for (const mv of moves) {
+    const canV = cur.r + vdir >= 0 && cur.r + vdir < rows;
+    let dr, dc;
+    if (mv === 'v') { dr = canV ? vdir : 0; dc = dr ? 0 : dir; }
+    else { dc = dir; dr = canV && Math.random() < 0.35 ? vdir : 0; } // 옆으로, 가끔 대각선
+    cur = { r: cur.r + dr, c: cur.c + dc };
+    path.push(cur);
+    if (cur.c < 0 || cur.c >= cols) break; // 밖으로 나갔으면 끝
+  }
+  if (cur.c >= 0 && cur.c < cols) path.push({ r: cur.r, c: dir < 0 ? -1 : cols }); // 혹시 안 나갔으면 마지막에 밖으로
+  const out = [{ r, c, delay: 0 }];
+  path.slice(1).forEach((p, i) => {
+    if (p.c < 0 || p.c >= cols) return; // 보드 밖
+    if (!out.some((o) => o.r === p.r && o.c === p.c)) out.push({ r: p.r, c: p.c, delay: (i + KAIJU_LAND) * KAIJU_STEP });
+  });
+  out.path = path;
+  return out;
+}
+
 const kaiju = {
   // 4~5발자국 걸어서 화면 왼쪽이나 오른쪽 밖으로 나감. 마지막 발은 보드 밖, 그 전 칸들은 밟아 부숨.
   // 가로로 나가야 하는 만큼은 옆으로(대각선 포함), 남는 걸음은 위아래로 어슬렁
-  area(r, c, rows, cols) {
-    const n = 4 + Math.floor(Math.random() * 2);
-    const sides = [];
-    if (c + 1 <= n) sides.push(-1);      // 왼쪽으로 나가는 데 필요한 걸음 c+1
-    if (cols - c <= n) sides.push(1);    // 오른쪽 cols-c
-    const dir = sides[Math.floor(Math.random() * sides.length)] || (c < cols / 2 ? -1 : 1);
-    const need = dir < 0 ? c + 1 : cols - c;
-    // 마지막 걸음은 반드시 옆으로 (밖으로 나가는 걸음)
-    const moves = Array(n - need).fill('v').concat(Array(need - 1).fill('h'));
-    for (let i = moves.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [moves[i], moves[j]] = [moves[j], moves[i]]; }
-    moves.push('h');
-    // 위아래로 갈 때는 한 방향(여유가 많은 쪽)으로만 → 왔던 칸을 되밟지 않음
-    const vdir = r >= rows - 1 - r ? -1 : 1;
-    const path = [{ r, c }];
-    let cur = { r, c };
-    for (const mv of moves) {
-      const canV = cur.r + vdir >= 0 && cur.r + vdir < rows;
-      let dr, dc;
-      if (mv === 'v') { dr = canV ? vdir : 0; dc = dr ? 0 : dir; }
-      else { dc = dir; dr = canV && Math.random() < 0.35 ? vdir : 0; } // 옆으로, 가끔 대각선
-      cur = { r: cur.r + dr, c: cur.c + dc };
-      path.push(cur);
-      if (cur.c < 0 || cur.c >= cols) break; // 밖으로 나갔으면 끝
+  // taken: 이미 다른 폭발로 터지기로 한 칸 (idx → 시각). 휘말려 발동됐을 때 빈칸만 밟지 않도록
+  //        여러 경로를 뽑아 아직 안 터진 칸을 가장 많이 밟는 경로를 고른다.
+  area(r, c, rows, cols, board, type, taken) {
+    let best = null, bestScore = -1;
+    for (let k = 0; k < (taken && taken.size ? 16 : 1); k++) {
+      const cand = kaijuPath(r, c, rows, cols);
+      const score = cand.path.slice(1).filter((p) => p.c >= 0 && p.c < cols && !(taken && taken.has(p.r * cols + p.c))).length;
+      if (score > bestScore) { best = cand; bestScore = score; }
     }
-    if (cur.c >= 0 && cur.c < cols) path.push({ r: cur.r, c: dir < 0 ? -1 : cols }); // 혹시 안 나갔으면 마지막에 밖으로
-    const out = [{ r, c, delay: 0 }];
-    path.slice(1).forEach((p, i) => {
-      if (p.c < 0 || p.c >= cols) return; // 보드 밖
-      if (!out.some((o) => o.r === p.r && o.c === p.c)) out.push({ r: p.r, c: p.c, delay: (i + KAIJU_LAND) * KAIJU_STEP });
-    });
-    out.path = path;
-    return out;
+    return best;
   },
   play(game, r, c, rows, cols, area) {
     const path = (area && area.path) || [{ r, c }];

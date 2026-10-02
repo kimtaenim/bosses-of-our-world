@@ -821,7 +821,7 @@ export class Game {
       popAt.set(i, t);
       if (!effect) continue;
       const [r, c] = board.rc(i);
-      const area = effect.area(r, c, rows, cols, board, tile.type);
+      const area = effect.area(r, c, rows, cols, board, tile.type, popAt); // popAt: 이미 터지기로 한 칸
       plays.push({ t, effect, r, c, area, type: tile.type, big: override === EFFECTS.screen });
       for (const a of area) {
         const j = board.idx(a.r, a.c);
