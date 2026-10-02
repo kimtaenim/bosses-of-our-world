@@ -157,21 +157,22 @@ const xblast = {
   },
 };
 
-const dove = {
-  // 비둘기 민병대: 세로 한 열 전체. 자기 위치에서 위아래로 25ms 시차, 하얀 빛줄기 + 깃털 + 탄피
+const missile = {
+  // ICBM: 세로 한 열 전체 + 미사일이 위로 솟구침
   area: column.area,
   play(game, r, c, rows) {
     const x = game.cx(c), y = game.cy(r);
     const sweep = Math.max(r, rows - 1 - r) * 25 + 25;
     game.fx.vbeam(x, y, 0, game.BH, game.T * 0.95, sweep / 0.7);
-    game.fx.ring(x, y, 6, game.STEP * 1.4, 240, 8, '255,255,255');
-    game.fx.burst(x, y, '#ffffff', 22, 1.3);
-    game.fx.burst(x, y, '#d9a832', 10, 1.1); // 탄피
+    game.fx.rocket(x, y);
+    game.fx.ring(x, y, 6, game.STEP * 1.5, 240, 8, '255,200,120');
+    game.fx.burst(x, y, '#ffb347', 18, 1.3);
+    game.fx.burst(x, y, '#ffffff', 10, 1.1);
   },
 };
 
-const dove3 = {
-  // 비둘기 민병대 셋: 자기 열과 양옆 열, 세로 세 줄 전체
+const missile3 = {
+  // ICBM 셋: 자기 열과 양옆 열, 세로 세 줄 전체 + 미사일 세 발
   area(r, c, rows, cols) {
     const out = [];
     for (let dc = -1; dc <= 1; dc++) {
@@ -187,16 +188,17 @@ const dove3 = {
       const cc = c + dc;
       if (cc < 0 || cc >= cols) continue;
       game.fx.vbeam(game.cx(cc), game.cy(r), 0, game.BH, game.T * 0.95, sweep / 0.7);
+      game.fx.rocket(game.cx(cc), game.cy(r));
     }
     const x = game.cx(c), y = game.cy(r);
-    game.fx.ring(x, y, 8, game.STEP * 3, 300, 12, '255,255,255');
-    game.fx.burst(x, y, '#ffffff', 34, 1.7);
-    game.fx.burst(x, y, '#d9a832', 18, 1.3); // 탄피
+    game.fx.ring(x, y, 8, game.STEP * 3, 300, 12, '255,200,120');
+    game.fx.burst(x, y, '#ffb347', 30, 1.7);
+    game.fx.burst(x, y, '#ffffff', 18, 1.3);
   },
 };
 
 export const EFFECTS = {
-  bomb, bomb5, row, column, sameType, diagonal, xblast, dove, dove3,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3,
   // 그룹 기본값
   politician: bomb,
   business: row,

@@ -18,7 +18,7 @@ export const CONFIG = {
   // 한 줄 길이별 점수 배율 (콤보·폭발과 별개): 4개 ×2, 5개 이상 ×4
   MATCH_MULT: { 4: 2, 5: 4 },
 
-  // 아이템(드론·시한폭탄) 나오는 확률: 지울 때마다 1/ITEM_ODDS. ITEM_ODDS_FROM판부터 판마다 1씩 늘어 점점 드물게
+  // 아이템(핵폭탄·시한폭탄) 나오는 확률: 지울 때마다 1/ITEM_ODDS. ITEM_ODDS_FROM판부터 판마다 1씩 늘어 점점 드물게
   // (20판까지 1/10, 21판 1/11, 22판 1/12 ...)
   ITEM_ODDS: 10,
   ITEM_ODDS_FROM: 21,

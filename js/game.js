@@ -58,7 +58,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
-    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('drone' | 'timebomb' | 'dove')
+    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile')
     this.lastMatch = 0;
     this.lastTs = 0;
     const saved = loadProgress();
@@ -624,7 +624,7 @@ export class Game {
       const f = fresh.splice(Math.floor(Math.random() * fresh.length), 1)[0];
       const idx = this.chars.findIndex((ch) => ch.item === kind);
       if (idx < 0) continue;
-      // 드론·비둘기 민병대는 같은 것끼리 맞출 수 있고(셋 맞추면 대폭발), 시한폭탄은 매치되지 않음
+      // 핵폭탄·ICBM은 같은 것끼리 맞출 수 있고(셋 맞추면 대폭발), 시한폭탄은 매치되지 않음
       Object.assign(f.tile, { type: idx, special: true, item: kind, noMatch: kind === 'timebomb' });
       // 시한폭탄: 떨어지는 시간(0.6초) 뒤부터 카운트다운
       if (kind === 'timebomb') { f.tile.fuse = this.tw.time + FUSE_MS + 600; f.tile.shownDigit = -1; }
@@ -635,12 +635,12 @@ export class Game {
 
   // 지울 때마다 아이템이 생길지 정한다
   rollItems(m, cascade, swapCells) {
-    // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 비둘기 민병대 (1판부터)
-    if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('dove');
-    // 11판부터 시한폭탄, 21판부터 드론: 지울 때마다 1/10 (21판부터 판마다 점점 드물게)
+    // 한 번 옮겨서 3개짜리 두 줄 이상을 동시에 지우면 ICBM 미사일 (1판부터)
+    if (cascade === 1 && swapCells && m.groups.length >= 2) this.pendingItems.push('missile');
+    // 11판부터 시한폭탄, 21판부터 핵폭탄: 지울 때마다 1/10 (21판부터 판마다 점점 드물게)
     const p = 1 / this.itemOdds();
     if (this.level >= 11 && Math.random() < p) this.pendingItems.push('timebomb');
-    if (this.level >= 21 && Math.random() < p) this.pendingItems.push('drone');
+    if (this.level >= 21 && Math.random() < p) this.pendingItems.push('nuke');
   }
 
   // 아이템 확률의 분모: 20판까지 10, 21판 11, 22판 12 ...
@@ -686,7 +686,7 @@ export class Game {
     const spawns = [];
     for (const g of m.groups) {
       if (g.cells.length < 4) continue;
-      if (this.chars[g.type] && this.chars[g.type].item) continue; // 드론 줄은 특수 타일을 만들지 않음
+      if (this.chars[g.type] && this.chars[g.type].item) continue; // 아이템 줄은 특수 타일을 만들지 않음
       let at = -1;
       if (swapCells) {
         for (const s of swapCells) {
@@ -716,8 +716,8 @@ export class Game {
     const chained = []; // 다른 특수 효과에 맞아 연쇄 발동하는 특수 타일
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
-    //   드론 → 5×5, 비둘기 민병대 → 세로 세 줄
-    const BIG = { drone: EFFECTS.bomb5, dove: EFFECTS.dove3 };
+    //   핵폭탄 → 5×5, ICBM → 세로 세 줄
+    const BIG = { nuke: EFFECTS.bomb5, missile: EFFECTS.missile3 };
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];

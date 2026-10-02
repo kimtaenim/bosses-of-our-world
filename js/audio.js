@@ -6,8 +6,8 @@
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
 //     anthem 성조기: 마림바 "솔미도미솔도" (성조기여 영원하라 첫 구절)
 //     fart 인공기·러시아 국기 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
-//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / drone 드론 위이잉 쾅 / boom 그 밖
-//     dove 비둘기 민병대 푸드덕 타타타탕 / 시한폭탄은 rocket 콰광
+//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / nuke 핵폭탄 콰르르릉 / boom 그 밖
+//     missile ICBM 슈우웅 쾅 / 시한폭탄은 rocket 콰광
 //   beep    시한폭탄 카운트다운 삑
 //   clear   판 클리어 (철퍼덕 와르르)
 
@@ -18,7 +18,7 @@ const MIN_GAP = { beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 4
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
-export const SPECIAL_KIND = { globe: 'drone', timebomb: 'rocket', dove: 'dove', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
+export const SPECIAL_KIND = { nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -621,46 +621,19 @@ export class Sound {
         this.tone('sine', 1568, 1568, 0.25, 0.27, 0.13);
         this.tone('sine', 2093, 2093, 0.3, 0.16, 0.22);
         break;
-      case 'special_drone': { // 드론: "위이이잉~" 프로펠러가 내려오다가 "쾅!"
-        const ctx = this.ctx;
-        const t = this.t0;
-        const o = ctx.createOscillator();
-        const am = ctx.createGain();
-        const lfo = ctx.createOscillator();
-        const lg = ctx.createGain();
-        const f = ctx.createBiquadFilter();
-        const g = ctx.createGain();
-        o.type = 'sawtooth';
-        o.frequency.setValueAtTime(240, t);
-        o.frequency.exponentialRampToValueAtTime(180, t + 0.45);
-        lfo.frequency.value = 38; // 프로펠러 떨림
-        lg.gain.value = 0.4;
-        am.gain.value = 0.6;
-        lfo.connect(lg).connect(am.gain);
-        f.type = 'bandpass';
-        f.frequency.value = 900;
-        f.Q.value = 1.5;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.35, t + 0.25);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
-        o.connect(f).connect(am).connect(g).connect(this.gain);
-        for (const x of [o, lfo]) { x.start(t); x.stop(t + 0.52); }
-        // 쾅
-        this.tone('sine', 150, 32, 0.6, 0.9, 0.42);
-        this.noise(0.5, 0.75, 1500, 0.42, 'lowpass', 100, 1);
-        this.splat(1.3, 0.45);
+      case 'special_nuke': // 핵폭탄: 번쩍 → 깊은 "콰르르르릉" 굉음이 길게 울림
+        this.noise(0.08, 0.9, 6000, 0, 'highpass', 3000, 0.7);
+        this.tone('sine', 90, 22, 1.4, 1.0, 0.03);
+        this.tone('sine', 60, 18, 1.6, 0.7, 0.08);
+        this.noise(1.6, 1.0, 1200, 0.03, 'lowpass', 50, 1.2);
+        for (let i = 0; i < 6; i++) this.noise(0.25, 0.35, 300 + Math.random() * 300, 0.3 + i * 0.18, 'lowpass', 80, 1); // 우르릉
         break;
-      }
-      case 'special_dove': { // 비둘기 민병대: "푸드덕" 날갯짓 + "타타타타탕" 연발 + 탄피 "팅"
-        for (let i = 0; i < 3; i++) this.noise(0.06, 0.45, 900 + Math.random() * 500, i * 0.07, 'bandpass', 400, 1.2);
-        for (let i = 0; i < 6; i++) {
-          const st = 0.22 + i * 0.075;
-          this.noise(0.05, 0.9, 2500, st, 'lowpass', 300, 0.8);   // 총성
-          this.tone('square', 160, 50, 0.05, 0.35, st);           // 반동 저음
-        }
-        [0.4, 0.55, 0.72].forEach((st) => this.tone('sine', 3400 + Math.random() * 600, 3000, 0.08, 0.08, st)); // 탄피
+      case 'special_missile': // ICBM: "슈우우웅" 솟구치다가 "쾅"
+        this.noise(0.45, 0.6, 500, 0, 'bandpass', 4000, 1.5);
+        this.tone('sawtooth', 200, 900, 0.4, 0.12);
+        this.tone('sine', 140, 30, 0.5, 0.85, 0.38);
+        this.noise(0.45, 0.7, 2000, 0.38, 'lowpass', 120, 1);
         break;
-      }
       case 'beep': // 시한폭탄 카운트다운 "삑" (semitone 7이면 0초: 더 높게)
         this.tone('square', 1320 * k, 1320 * k, 0.07, 0.16);
         break;

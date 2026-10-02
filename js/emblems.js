@@ -35,6 +35,21 @@ function iconBg(ctx, T, color, draw) {
   ctx.restore();
 }
 
+// 타일 위쪽에 작은 글씨 (ICBM, NUKE)
+function label(ctx, T, text) {
+  ctx.save();
+  ctx.shadowColor = 'transparent';
+  ctx.font = `900 ${T * 0.15}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = T * 0.04;
+  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.strokeText(text, T / 2, T * 0.14);
+  ctx.fillStyle = '#FFE066';
+  ctx.fillText(text, T / 2, T * 0.14);
+  ctx.restore();
+}
+
 export const EMBLEMS = {
   // 성조기
   us(ctx, T) {
@@ -356,76 +371,100 @@ export const EMBLEMS = {
     });
   },
 
-  // 평화의 비둘기: 하늘색 바탕에 하얀 비둘기가 초록 올리브 가지를 물고 있음
-  dove(ctx, T, color) {
+  // ICBM: 짙은 남색 바탕에 위를 향한 미사일 + 위에 작은 'ICBM'
+  missile(ctx, T, color) {
     iconBg(ctx, T, color, () => {
-      const P = (x, y) => [T * x, T * y];
-      // 타일을 꽉 채우게 1.15배 (올리브 가지가 잘리지 않게 살짝 왼쪽으로)
-      ctx.translate(T * 0.44, T * 0.5);
-      ctx.scale(1.15, 1.15);
-      ctx.translate(-T / 2, -T / 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = 'rgba(40,70,110,0.55)';
-      ctx.lineWidth = T * 0.012;
-      ctx.lineJoin = 'round';
-      // 몸통 + 꼬리 (오른쪽을 보고 날아가는 모습)
+      const cx = T / 2;
+      ctx.save();
+      // 미사일을 조금 더 크고 통통하게
+      ctx.translate(cx, T * 0.56);
+      ctx.scale(1.4, 1.12);
+      ctx.translate(-cx, -T * 0.56);
+      // 불꽃
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,140,0,0.8)';
+      ctx.shadowBlur = T * 0.06;
+      ctx.fillStyle = '#FFB000';
       ctx.beginPath();
-      ctx.moveTo(...P(0.68, 0.40));                                   // 머리 뒤
-      ctx.bezierCurveTo(...P(0.62, 0.58), ...P(0.45, 0.66), ...P(0.30, 0.64));
-      ctx.lineTo(...P(0.12, 0.74));                                   // 꼬리 끝 아래
-      ctx.lineTo(...P(0.16, 0.62));
-      ctx.lineTo(...P(0.10, 0.56));                                   // 꼬리 끝 위
-      ctx.bezierCurveTo(...P(0.28, 0.54), ...P(0.40, 0.50), ...P(0.50, 0.44));
+      ctx.moveTo(cx - T * 0.07, T * 0.82);
+      ctx.quadraticCurveTo(cx, T * 1.0, cx + T * 0.07, T * 0.82);
       ctx.closePath();
       ctx.fill();
-      ctx.stroke();
-      // 위로 든 날개
+      ctx.fillStyle = '#FF5A1F';
       ctx.beginPath();
-      ctx.moveTo(...P(0.50, 0.46));
-      ctx.bezierCurveTo(...P(0.40, 0.30), ...P(0.28, 0.20), ...P(0.18, 0.18));
-      ctx.bezierCurveTo(...P(0.26, 0.26), ...P(0.24, 0.30), ...P(0.30, 0.34));
-      ctx.bezierCurveTo(...P(0.26, 0.36), ...P(0.30, 0.42), ...P(0.38, 0.44));
-      ctx.bezierCurveTo(...P(0.36, 0.48), ...P(0.44, 0.52), ...P(0.56, 0.50));
+      ctx.moveTo(cx - T * 0.04, T * 0.82);
+      ctx.quadraticCurveTo(cx, T * 0.93, cx + T * 0.04, T * 0.82);
       ctx.closePath();
       ctx.fill();
-      ctx.stroke();
-      // 머리
+      ctx.restore();
+      // 꼬리 날개
+      ctx.fillStyle = '#C8102E';
       ctx.beginPath();
-      ctx.arc(...P(0.70, 0.36), T * 0.085, 0, Math.PI * 2);
+      ctx.moveTo(cx - T * 0.08, T * 0.6); ctx.lineTo(cx - T * 0.17, T * 0.82); ctx.lineTo(cx - T * 0.08, T * 0.78);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx + T * 0.08, T * 0.6); ctx.lineTo(cx + T * 0.17, T * 0.82); ctx.lineTo(cx + T * 0.08, T * 0.78);
+      ctx.closePath(); ctx.fill();
+      // 몸통
+      const g = ctx.createLinearGradient(cx - T * 0.08, 0, cx + T * 0.08, 0);
+      g.addColorStop(0, '#b9c1cc'); g.addColorStop(0.45, '#ffffff'); g.addColorStop(1, '#8d97a5');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(cx - T * 0.08, T * 0.82);
+      ctx.lineTo(cx - T * 0.08, T * 0.42);
+      ctx.quadraticCurveTo(cx - T * 0.08, T * 0.3, cx, T * 0.24);
+      ctx.quadraticCurveTo(cx + T * 0.08, T * 0.3, cx + T * 0.08, T * 0.42);
+      ctx.lineTo(cx + T * 0.08, T * 0.82);
+      ctx.closePath();
       ctx.fill();
-      ctx.stroke();
       ctx.shadowColor = 'transparent';
-      // 부리
-      ctx.fillStyle = '#F2A33A';
+      // 빨간 탄두 띠
+      ctx.fillStyle = '#C8102E';
       ctx.beginPath();
-      ctx.moveTo(...P(0.77, 0.33));
-      ctx.lineTo(...P(0.86, 0.36));
-      ctx.lineTo(...P(0.77, 0.39));
+      ctx.moveTo(cx - T * 0.075, T * 0.4);
+      ctx.quadraticCurveTo(cx - T * 0.075, T * 0.3, cx, T * 0.24);
+      ctx.quadraticCurveTo(cx + T * 0.075, T * 0.3, cx + T * 0.075, T * 0.4);
       ctx.closePath();
       ctx.fill();
-      // 눈
       ctx.fillStyle = '#1d2747';
+      ctx.fillRect(cx - T * 0.08, T * 0.52, T * 0.16, T * 0.025);
+      ctx.restore();
+      label(ctx, T, 'ICBM');
+    });
+  },
+
+  // 핵폭탄: 어두운 바탕에 버섯구름 + 위에 작은 'NUKE'
+  nuke(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      ctx.shadowColor = 'transparent';
+      const cx = T / 2;
+      // 바닥 불덩이
+      const ground = ctx.createRadialGradient(cx, T * 0.86, T * 0.02, cx, T * 0.86, T * 0.3);
+      ground.addColorStop(0, '#FFF3B0'); ground.addColorStop(0.5, '#FF8A00'); ground.addColorStop(1, 'rgba(255,60,0,0)');
+      ctx.fillStyle = ground;
+      ctx.beginPath(); ctx.ellipse(cx, T * 0.86, T * 0.32, T * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+      // 기둥
+      const stem = ctx.createLinearGradient(0, T * 0.45, 0, T * 0.85);
+      stem.addColorStop(0, '#FF7A00'); stem.addColorStop(1, '#FFD34D');
+      ctx.fillStyle = stem;
       ctx.beginPath();
-      ctx.arc(...P(0.72, 0.34), T * 0.016, 0, Math.PI * 2);
+      ctx.moveTo(cx - T * 0.06, T * 0.5);
+      ctx.quadraticCurveTo(cx - T * 0.05, T * 0.7, cx - T * 0.12, T * 0.84);
+      ctx.lineTo(cx + T * 0.12, T * 0.84);
+      ctx.quadraticCurveTo(cx + T * 0.05, T * 0.7, cx + T * 0.06, T * 0.5);
+      ctx.closePath();
       ctx.fill();
-      // 입에 문 초록 올리브 가지
-      ctx.strokeStyle = '#3d8b37';
-      ctx.lineWidth = T * 0.028;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(...P(0.82, 0.37));
-      ctx.quadraticCurveTo(...P(0.88, 0.46), ...P(0.86, 0.56));
-      ctx.stroke();
-      ctx.fillStyle = '#56b04a';
-      for (const [x, y, a] of [[0.85, 0.42, -0.6], [0.89, 0.47, 0.5], [0.84, 0.50, -0.7], [0.88, 0.55, 0.6], [0.86, 0.58, 0]]) {
-        ctx.save();
-        ctx.translate(...P(x, y));
-        ctx.rotate(a);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, T * 0.052, T * 0.024, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+      // 고리 구름
+      ctx.fillStyle = '#FF9A1F';
+      ctx.beginPath(); ctx.ellipse(cx, T * 0.58, T * 0.16, T * 0.035, 0, 0, Math.PI * 2); ctx.fill();
+      // 버섯 머리 (구름 덩이 여러 개)
+      const cap = ctx.createRadialGradient(cx, T * 0.36, T * 0.03, cx, T * 0.42, T * 0.3);
+      cap.addColorStop(0, '#FFF6C2'); cap.addColorStop(0.45, '#FFB21F'); cap.addColorStop(1, '#E2480C');
+      ctx.fillStyle = cap;
+      for (const [x, y, rr] of [[0, 0.4, 0.17], [-0.15, 0.44, 0.11], [0.15, 0.44, 0.11], [-0.09, 0.33, 0.11], [0.09, 0.33, 0.11], [0, 0.29, 0.1]]) {
+        ctx.beginPath(); ctx.arc(cx + x * T, y * T, rr * T, 0, Math.PI * 2); ctx.fill();
       }
+      label(ctx, T, 'NUKE');
     });
   },
 };
