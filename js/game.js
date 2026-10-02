@@ -58,7 +58,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
-    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile' | 'drone')
+    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile' | 'drone' | 'tariff')
     this.lastMatch = 0;
     this.lastTs = 0;
     const saved = loadProgress();
@@ -282,6 +282,13 @@ export class Game {
     this.spot = null;
     this.lastMatch = this.tw.time;
     try {
+      if (t.item === 'tariff') {
+        // 관세: 터지지 않고 주변 3×3을 뒤섞음
+        await this.tariffShuffle(cell);
+        await this.animateFalls(this.collapse());
+        await this.resolve(null); // 섞여서 생긴 매치 처리
+        return;
+      }
       const i = this.board.idx(cell.r, cell.c);
       await this.resolveStep({ groups: [{ type: t.type, cells: [i] }], matched: new Set([i]) }, 1, null);
       if (this.score >= this.target()) {
@@ -296,6 +303,60 @@ export class Game {
     } finally {
       this.endTurn();
     }
+  }
+
+  // 관세: 관세 타일은 사라지고, 주변 3×3 타일들이 가운데로 빨려 들었다가 빙글 돌며 자리를 바꿈
+  async tariffShuffle(cell) {
+    const board = this.board;
+    const { r, c } = cell;
+    const tile = board.get(r, c);
+    board.cells[board.idx(r, c)] = null;
+    this.sound.special(this.chars[tile.type]); // 리셔플 소리 + 카칭
+    this.vibrate(20);
+    this.fx.burst(this.cx(c), this.cy(r), '#4E9A4B', 18, 1.3);
+    this.fx.ring(this.cx(c), this.cy(r), 6, this.STEP * 1.6, 260, 8, '120,220,120');
+    this.popTile(tile, 1);
+    const spots = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const rr = r + dr, cc = c + dc;
+        if ((dr || dc) && board.inBounds(rr, cc) && board.get(rr, cc)) spots.push({ r: rr, c: cc });
+      }
+    }
+    const tiles = spots.map((p) => board.get(p.r, p.c));
+    // 자리 섞기 (가능하면 모두 다른 자리로)
+    const order = tiles.map((_, i) => i);
+    for (let k = 0; k < 20; k++) {
+      for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+      if (order.every((o, i) => o !== i) || order.length < 2) break;
+    }
+    spots.forEach((p, i) => { board.cells[board.idx(p.r, p.c)] = tiles[order[i]]; });
+    for (const t of tiles) { this.faces.cancelMotion(t); this.faces.set(t, 'shock', 900, PRIO.MOVE); }
+    const J = Math.min(this.J, 1.5);
+    const moves = spots.map((p, i) => ({ t: tiles[order[i]], x0: tiles[order[i]].x, y0: tiles[order[i]].y, x1: p.c, y1: p.r, spin: (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random()) }));
+    await this.tw.tween(200, (p) => {
+      for (const m of moves) {
+        m.t.x = m.x0 + (c - m.x0) * p * 0.6;
+        m.t.y = m.y0 + (r - m.y0) * p * 0.6;
+        m.t.scale = 1 - 0.3 * p * J;
+        m.t.rot = m.spin * p * Math.PI * J;
+      }
+    }, ease.inQuad);
+    this.fx.shake(3);
+    await this.tw.tween(340, (p) => {
+      for (const m of moves) {
+        const sx = m.x0 + (c - m.x0) * 0.6, sy = m.y0 + (r - m.y0) * 0.6;
+        m.t.x = sx + (m.x1 - sx) * p;
+        m.t.y = sy + (m.y1 - sy) * p;
+        m.t.scale = 1 - 0.3 * J + 0.3 * J * p;
+        m.t.rot = m.spin * (1 - p) * Math.PI * J;
+      }
+    }, ease.outBack);
+    for (const m of moves) {
+      m.t.x = m.x1; m.t.y = m.y1; m.t.scale = 1; m.t.rot = 0;
+      this.faces.set(m.t, 'glance', 500, PRIO.REACT, Math.random() < 0.5);
+    }
+    await this.tw.wait(60);
   }
 
   async playSwap(a, b) {
@@ -625,7 +686,7 @@ export class Game {
       const idx = this.chars.findIndex((ch) => ch.item === kind);
       if (idx < 0) continue;
       // 핵폭탄·ICBM은 같은 것끼리 맞출 수 있고(셋 맞추면 대폭발), 시한폭탄은 매치되지 않음
-      Object.assign(f.tile, { type: idx, special: true, item: kind, noMatch: kind === 'timebomb' });
+      Object.assign(f.tile, { type: idx, special: true, item: kind, noMatch: kind === 'timebomb' || kind === 'tariff' });
       // 시한폭탄: 떨어지는 시간(0.6초) 뒤부터 카운트다운
       if (kind === 'timebomb') { f.tile.fuse = this.tw.time + FUSE_MS + 600; f.tile.shownDigit = -1; }
     }
@@ -643,6 +704,8 @@ export class Game {
     if (this.level >= 21 && Math.random() < p) this.pendingItems.push('nuke');
     // 31판부터 드론: 처음엔 1/6, 판마다 점점 드물게 (32판 1/7, 33판 1/8 …)
     if (this.level >= 31 && Math.random() < 1 / (6 + this.level - 31)) this.pendingItems.push('drone');
+    // 41판부터 관세: 처음엔 1/8, 판마다 점점 드물게
+    if (this.level >= 41 && Math.random() < 1 / (8 + this.level - 41)) this.pendingItems.push('tariff');
   }
 
   // 아이템 확률의 분모: 20판까지 10, 21판 11, 22판 12 ...

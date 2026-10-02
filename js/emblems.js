@@ -520,6 +520,42 @@ export const EMBLEMS = {
     });
   },
 
+  // 관세: 빨간 바탕에 초록 달러 뭉치 + 위에 작은 'TARIFF'
+  tariff(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      const bill = (x, y, a) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(a);
+        const w = T * 0.62, h = T * 0.3;
+        ctx.fillStyle = '#4E9A4B';
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = '#2E6B2C';
+        ctx.lineWidth = T * 0.02;
+        ctx.strokeRect(-w / 2 + T * 0.02, -h / 2 + T * 0.02, w - T * 0.04, h - T * 0.04);
+        ctx.fillStyle = '#CDE8C4';
+        ctx.beginPath(); ctx.ellipse(0, 0, h * 0.34, h * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1F5A1D';
+        ctx.font = `900 ${h * 0.6}px Georgia, serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('$', 0, h * 0.04);
+        ctx.restore();
+      };
+      bill(T * 0.5, T * 0.72, -0.12);
+      bill(T * 0.5, T * 0.6, 0.08);
+      bill(T * 0.5, T * 0.48, -0.04);
+      // 띠지
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#F4E3B2';
+      ctx.save(); ctx.translate(T * 0.5, T * 0.48); ctx.rotate(-0.04);
+      ctx.fillRect(-T * 0.05, -T * 0.15, T * 0.1, T * 0.3);
+      ctx.restore();
+      label(ctx, T, 'TARIFF');
+    });
+  },
+
   // 드론 (그림 파일이 없을 때 대신 그리는 것)
   drone(ctx, T, color) {
     iconBg(ctx, T, color, () => {

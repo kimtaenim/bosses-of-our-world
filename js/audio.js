@@ -19,7 +19,7 @@ const MIN_GAP = { beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 4
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
-export const SPECIAL_KIND = { drone: 'drone', tea: 'tea', nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
+export const SPECIAL_KIND = { tariff: 'tariff', drone: 'drone', tea: 'tea', nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -696,6 +696,14 @@ export class Sound {
         for (const x of [o, lfo, wob]) { x.start(t); x.stop(t + 1.15); }
         break;
       }
+      case 'special_tariff': // 관세: 리셔플처럼 올라가는 카주 + 지폐 촤라락 + "카칭!"
+        this.kazoo(392 * Math.pow(2, 5 / 12), 0, 0.09, 0.5);
+        this.kazoo(523 * Math.pow(2, 5 / 12), 0.08, 0.16, 0.55);
+        for (let i = 0; i < 7; i++) this.noise(0.05, 0.35, 3000 + Math.random() * 2000, 0.05 + i * 0.045, 'highpass', 2500, 0.7); // 지폐
+        this.noise(0.04, 0.5, 3000, 0.4, 'bandpass', 3000, 2);
+        this.tone('triangle', 2637, 2637, 0.35, 0.28, 0.44);
+        this.tone('triangle', 3520, 3520, 0.45, 0.2, 0.48);
+        break;
       case 'special_tea': { // 방사능 홍차: "쪼르르르륵" 따르는 소리 + "억!"
         const ctx = this.ctx;
         const t = this.t0;
