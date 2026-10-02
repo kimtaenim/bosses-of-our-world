@@ -719,12 +719,14 @@ export class Game {
     //   NUKE든 ICBM이든 셋 맞추면 화면 전체 폭발
     const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen };
     const bigAt = new Map();
+    let skipLevel = false;
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
       if (!big || g.cells.length < 3) continue; // 하나만 누른 건 보통 크기 (셋 이상 맞춰야 대폭발)
       const sorted = [...g.cells].sort((a, b) => a - b);
       const mid = sorted[Math.floor(sorted.length / 2)];
       bigAt.set(mid, big);
+      if (this.chars[g.type].item === 'missile') skipLevel = true; // ICBM 셋: 판 자체를 날려버림
       for (const i of sorted) if (i !== mid) { fired.add(i); popAt.set(i, HIT); }
     }
     for (const i of m.matched) {
@@ -837,6 +839,17 @@ export class Game {
     this.addScore(removed.length + extra, cascade, [...m.matched]);
     const gone = new Set(removed.map((e) => e.tile));
     this.dying = this.dying.filter((t) => !gone.has(t));
+    // ICBM 셋: 목표까지 남은 점수를 채워 바로 판 클리어
+    if (skipLevel) {
+      const need = this.target() - this.score;
+      if (need > 0) {
+        this.score += need;
+        this.addTotal(need);
+        this.save();
+        this.updateHud();
+      }
+      this.showBanner('판 날리기!');
+    }
   }
 
   // 주변 타일 파편이 생성 위치로 빨려 들어온(100ms) 뒤 특수 타일이 팝(1.3배 → 1배)
