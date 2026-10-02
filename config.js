@@ -16,9 +16,9 @@ export const CONFIG = {
   TARGET_STEP: 100,
 
   // 아이템(드론·시한폭탄) 나오는 확률: 지울 때마다 1/ITEM_ODDS. ITEM_ODDS_FROM판부터 판마다 1씩 늘어 점점 드물게
-  // (29판까지 1/10, 30판 1/11, 31판 1/12 ...)
+  // (20판까지 1/10, 21판 1/11, 22판 1/12 ...)
   ITEM_ODDS: 10,
-  ITEM_ODDS_FROM: 30,
+  ITEM_ODDS_FROM: 21,
 
   // 타임 보너스: 판을 정해진 초 안에 깨면 남은 1초마다 TIME_BONUS_PER_SEC점 (전체 점수에 더함)
   // 보너스 시간 = 인물 수별 기본(4명 60초, 5명 이상 120초) + 판마다 TIME_BONUS_SEC_STEP초
