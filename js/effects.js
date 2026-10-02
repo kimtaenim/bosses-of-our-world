@@ -329,25 +329,38 @@ const secrets3 = {
 const KAIJU_STEP = 600; // ms, 한 칸 (멈춤 + 왼발 + 오른발 + 착지) — 다섯 칸 3초
 const KAIJU_LAND = 0.85; // 한 칸 안에서 착지하는 시점 (fx.js KAIJU_PAUSE + KAIJU_MOVE)
 const kaiju = {
+  // 4~5발자국 걸어서 화면 왼쪽이나 오른쪽 밖으로 나감. 마지막 발은 보드 밖, 그 전 칸들은 밟아 부숨.
+  // 가로로 나가야 하는 만큼은 옆으로(대각선 포함), 남는 걸음은 위아래로 어슬렁
   area(r, c, rows, cols) {
+    const n = 4 + Math.floor(Math.random() * 2);
+    const sides = [];
+    if (c + 1 <= n) sides.push(-1);      // 왼쪽으로 나가는 데 필요한 걸음 c+1
+    if (cols - c <= n) sides.push(1);    // 오른쪽 cols-c
+    const dir = sides[Math.floor(Math.random() * sides.length)] || (c < cols / 2 ? -1 : 1);
+    const need = dir < 0 ? c + 1 : cols - c;
+    // 마지막 걸음은 반드시 옆으로 (밖으로 나가는 걸음)
+    const moves = Array(n - need).fill('v').concat(Array(need - 1).fill('h'));
+    for (let i = moves.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [moves[i], moves[j]] = [moves[j], moves[i]]; }
+    moves.push('h');
+    // 위아래로 갈 때는 한 방향(여유가 많은 쪽)으로만 → 왔던 칸을 되밟지 않음
+    const vdir = r >= rows - 1 - r ? -1 : 1;
     const path = [{ r, c }];
-    const seen = new Set([r * cols + c]);
     let cur = { r, c };
-    for (let k = 1; k <= 5; k++) {
-      const nb = [];
-      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
-        if (!dr && !dc) continue;
-        const rr = cur.r + dr, cc = cur.c + dc;
-        if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) nb.push({ r: rr, c: cc });
-      }
-      const fresh = nb.filter((p) => !seen.has(p.r * cols + p.c));
-      const pick = (fresh.length ? fresh : nb)[Math.floor(Math.random() * (fresh.length ? fresh : nb).length)];
-      path.push(pick);
-      seen.add(pick.r * cols + pick.c);
-      cur = pick;
+    for (const mv of moves) {
+      const canV = cur.r + vdir >= 0 && cur.r + vdir < rows;
+      let dr, dc;
+      if (mv === 'v') { dr = canV ? vdir : 0; dc = dr ? 0 : dir; }
+      else { dc = dir; dr = canV && Math.random() < 0.35 ? vdir : 0; } // 옆으로, 가끔 대각선
+      cur = { r: cur.r + dr, c: cur.c + dc };
+      path.push(cur);
+      if (cur.c < 0 || cur.c >= cols) break; // 밖으로 나갔으면 끝
     }
+    if (cur.c >= 0 && cur.c < cols) path.push({ r: cur.r, c: dir < 0 ? -1 : cols }); // 혹시 안 나갔으면 마지막에 밖으로
     const out = [{ r, c, delay: 0 }];
-    path.slice(1).forEach((p, i) => { if (!out.some((o) => o.r === p.r && o.c === p.c)) out.push({ r: p.r, c: p.c, delay: (i + KAIJU_LAND) * KAIJU_STEP }); });
+    path.slice(1).forEach((p, i) => {
+      if (p.c < 0 || p.c >= cols) return; // 보드 밖
+      if (!out.some((o) => o.r === p.r && o.c === p.c)) out.push({ r: p.r, c: p.c, delay: (i + KAIJU_LAND) * KAIJU_STEP });
+    });
     out.path = path;
     return out;
   },
@@ -359,11 +372,12 @@ const kaiju = {
 };
 
 // 카이주 한 마리가 path를 따라 걷는 연출. 한 칸에 소리 하나씩:
-//   걷는 3초 동안 포효 "캬아아아", 다 걸으면 똥방귀와 함께 사라짐
+//   걷는 동안 포효 "캬아아아", 화면 밖으로 나가면서 똥방귀
 function kaijuWalk(game, path, offset) {
   game.tw.after(offset, () => game.fx.kaiju(path.map((p) => ({ x: game.cx(p.c), y: game.cy(p.r) })), KAIJU_STEP / 1000, game.T * 1.2));
   path.slice(1).forEach((p, i) => {
     const base = offset + i * KAIJU_STEP;
+    if (p.c < 0 || p.c >= game.cfg.COLS) return; // 화면 밖으로 나가는 마지막 걸음은 부수지 않음
     game.tw.after(base + KAIJU_LAND * KAIJU_STEP, () => {
       const x = game.cx(p.c), y = game.cy(p.r);
       game.fx.ring(x, y, 4, game.STEP * 0.9, 160, 8, '200,255,160');
