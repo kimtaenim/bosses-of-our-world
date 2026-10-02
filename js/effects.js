@@ -194,6 +194,53 @@ const missile = {
   },
 };
 
+// ICBM 셋: 일곱 발이 동시에 솟아올라 제각각 휘며 날아다니다 판 사방팔방 2×2를 콰광
+const ICBM_SWARM = 7;
+const icbmSwarm = {
+  area(r, c, rows, cols) {
+    // 2×2 자리를 고르게 흩어지도록 고름 (겹치지 않는 곳 먼저)
+    const spots = [];
+    for (let rr = 0; rr < rows - 1; rr++) for (let cc = 0; cc < cols - 1; cc++) spots.push({ r: rr, c: cc });
+    for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+    const picked = [];
+    const near = (a, b) => Math.abs(a.r - b.r) < 2 && Math.abs(a.c - b.c) < 2;
+    for (const sp of spots) if (picked.length < ICBM_SWARM && !picked.some((q) => near(q, sp))) picked.push(sp);
+    for (const sp of spots) if (picked.length < ICBM_SWARM && !picked.includes(sp)) picked.push(sp);
+    const out = [{ r, c, delay: 0 }];
+    const seen = new Set([r * cols + c]);
+    out.targets = picked.map((sp, k) => {
+      const delay = 900 + k * 110 + Math.round(Math.random() * 250); // 하나씩 차례로 쾅쾅쾅
+      for (let dr = 0; dr < 2; dr++) for (let dc = 0; dc < 2; dc++) {
+        const rr = sp.r + dr, cc = sp.c + dc;
+        if (seen.has(rr * cols + cc)) continue;
+        seen.add(rr * cols + cc);
+        out.push({ r: rr, c: cc, delay });
+      }
+      return { r: sp.r + 0.5, c: sp.c + 0.5, delay };
+    });
+    return out;
+  },
+  play(game, r, c, rows, cols, area) {
+    const x = game.cx(c), y = game.cy(r);
+    game.fx.ring(x, y, 6, game.STEP * 1.6, 260, 8, '255,200,120');
+    game.fx.flash(0.25);
+    for (const t of (area && area.targets) || []) {
+      const tx = game.cx(t.c), ty = game.cy(t.r);
+      // 높이·휘는 정도를 제각각: 사방으로 흩어져 날아다님
+      game.fx.arcMissile(x, y, tx, ty, t.delay / 1000, game.STEP * (2.5 + Math.random() * 2.5), game.STEP * (0.8 + Math.random() * 1.2) * (Math.random() < 0.5 ? -1 : 1));
+      game.tw.after(t.delay, () => {
+        game.fx.ring(tx, ty, 6, game.STEP * 2, 280, 10, '255,200,120');
+        game.fx.ring(tx, ty, 4, game.STEP * 1.1, 180, 12);
+        game.fx.burst(tx, ty, '#ffb347', 20, 1.5);
+        game.fx.burst(tx, ty, '#ffffff', 10, 1.2);
+        game.fx.flash(0.2);
+        game.fx.shake(9);
+        game.sound.play('special_rocket'); // 콰광
+      });
+    }
+  },
+};
+
 const DRONE_FLIGHT = 1100; // ms
 
 const droneStrike = {
@@ -494,7 +541,7 @@ const teaSink = {
 };
 
 export const EFFECTS = {
-  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen, droneStrike, droneStrike3, ufoStrike, ufoStrike3, secrets, secrets3, kaiju, kaiju5, teaSink,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, icbmSwarm, screen, droneStrike, droneStrike3, ufoStrike, ufoStrike3, secrets, secrets3, kaiju, kaiju5, teaSink,
   // 그룹 기본값
   politician: bomb,
   business: row,

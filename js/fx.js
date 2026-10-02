@@ -151,9 +151,10 @@ export class FX {
   }
 
   // 포물선을 그리며 (x0,y0) → (x1,y1)로 날아가는 미사일. dur 초, peak px만큼 위로 솟음
-  arcMissile(x0, y0, x1, y1, dur, peak) {
+  // swerve: 옆으로 S자로 휘는 정도 (0이면 그냥 포물선)
+  arcMissile(x0, y0, x1, y1, dur, peak, swerve = 0) {
     if (this.juice <= 0) return;
-    this.arcs.push({ x0, y0, x1, y1, dur, peak, t: 0, x: x0, y: y0, ang: 0 });
+    this.arcs.push({ x0, y0, x1, y1, dur, peak, swerve, t: 0, x: x0, y: y0, ang: 0 });
   }
 
   // 드론: (x0,y0) → (x1,y1)로 요리조리 비틀비틀 날아감 (dur 초)
@@ -215,7 +216,8 @@ export class FX {
     for (const a of this.arcs) {
       a.t += s;
       const p = Math.min(a.t / a.dur, 1);
-      const nx = a.x0 + (a.x1 - a.x0) * p;
+      const sw = a.swerve * Math.sin(p * Math.PI * 2) * Math.sin(p * Math.PI);
+      const nx = a.x0 + (a.x1 - a.x0) * p + sw;
       const ny = a.y0 + (a.y1 - a.y0) * p - a.peak * 4 * p * (1 - p);
       a.ang = Math.atan2(ny - a.y, nx - a.x) + Math.PI / 2; // 머리가 진행 방향
       a.x = nx; a.y = ny;
