@@ -989,7 +989,19 @@ export class Game {
         if (!t || t.special) continue;
         const d = Math.max(Math.abs(dr), Math.abs(dc));
         this.faces.cancelMotion(t);
-        this.faces.set(t, d <= 1 ? 'scream' : 'shock', d <= 1 ? 750 : 500, d <= 1 ? PRIO.DOOM : PRIO.MOVE);
+        // 비명(scream)과 겁먹음(fall)을 무작위로 번갈아
+        const first = Math.random() < 0.5 ? 'scream' : 'fall';
+        const prio = d <= 1 ? PRIO.DOOM : PRIO.MOVE;
+        const dur = d <= 1 ? 750 : 550;
+        this.faces.set(t, first, dur, prio);
+        const flips = 1 + Math.floor(Math.random() * 2);
+        for (let k = 1; k <= flips; k++) {
+          this.tw.after((dur / (flips + 1)) * k + Math.random() * 60, () => {
+            if (t.exprPrio === prio && (t.expr === 'scream' || t.expr === 'fall')) {
+              t.expr = t.expr === 'scream' ? 'fall' : 'scream';
+            }
+          });
+        }
         near.push({ t, amp: d <= 1 ? 3.2 : 1.6 });
       }
     }
