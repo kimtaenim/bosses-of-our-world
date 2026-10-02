@@ -696,30 +696,34 @@ export class Sound {
         for (const x of [o, lfo, wob]) { x.start(t); x.stop(t + 1.15); }
         break;
       }
-      case 'special_kaiju': { // 카이주 울음: "끼야아아오오오~" 쇳소리 섞인 긴 포효
+      case 'special_kaiju': { // 카이주 울음: "캬아아아아~" 쇳소리 섞인 포효가 3초 동안
         const ctx = this.ctx;
         const t = this.t0;
-        for (const [f0, f1, type, vol] of [[420, 260, 'sawtooth', 0.22], [436, 250, 'sawtooth', 0.18], [110, 70, 'square', 0.12]]) {
+        const D = 3.0;
+        for (const [f0, f1, type, vol] of [[440, 300, 'sawtooth', 0.2], [455, 290, 'sawtooth', 0.16], [880, 560, 'square', 0.05], [110, 75, 'square', 0.1]]) {
           const o = ctx.createOscillator();
           const f = ctx.createBiquadFilter();
           const g = ctx.createGain();
           const vib = ctx.createOscillator();
           const vg = ctx.createGain();
           o.type = type;
-          o.frequency.setValueAtTime(f0 * 0.7, t);
-          o.frequency.linearRampToValueAtTime(f0, t + 0.25);
-          o.frequency.linearRampToValueAtTime(f1, t + 1.1);
-          vib.frequency.value = 23; vg.gain.value = f0 * 0.04;
+          o.frequency.setValueAtTime(f0 * 0.65, t);
+          o.frequency.linearRampToValueAtTime(f0, t + 0.35);    // 캬
+          o.frequency.linearRampToValueAtTime(f0 * 0.95, t + 1.8); // 아아아
+          o.frequency.linearRampToValueAtTime(f1, t + D);         // 아~ 하고 내려앉음
+          vib.frequency.setValueAtTime(18, t);
+          vib.frequency.linearRampToValueAtTime(30, t + D);
+          vg.gain.value = f0 * 0.045;
           vib.connect(vg).connect(o.frequency);
-          f.type = 'bandpass'; f.frequency.value = 1400; f.Q.value = 0.9;
+          f.type = 'bandpass'; f.frequency.value = 1500; f.Q.value = 0.8;
           g.gain.setValueAtTime(0.0001, t);
-          g.gain.exponentialRampToValueAtTime(vol, t + 0.2);
-          g.gain.setValueAtTime(vol * 0.9, t + 0.85);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + 1.15);
+          g.gain.exponentialRampToValueAtTime(vol, t + 0.25);
+          g.gain.setValueAtTime(vol, t + D * 0.7);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + D);
           o.connect(f).connect(g).connect(this.gain);
-          for (const x of [o, vib]) { x.start(t); x.stop(t + 1.2); }
+          for (const x of [o, vib]) { x.start(t); x.stop(t + D + 0.05); }
         }
-        this.noise(1.1, 0.25, 2500, 0, 'bandpass', 1200, 1.5); // 쇳소리 바람
+        this.noise(D, 0.22, 2600, 0, 'bandpass', 1300, 1.5); // 쇳소리 바람
         break;
       }
       case 'timpani': { // 팀파니: semitone 0 = 라(A2), 1 = 미(E2) — 카이주 발걸음
@@ -739,6 +743,9 @@ export class Sound {
         this.noise(0.06, 0.45, 600, 0, 'lowpass', 200, 1); // 말렛 타격
         break;
       }
+      case 'kaiju_poop': // 카이주 퇴장: 똥방귀 (설사 방귀)
+        this.wetFart(1.2, 0, 0.6);
+        break;
       case 'kaiju_stomp': // 쿵! + 부서지는 소리
         this.tone('sine', 90, 35, 0.25, 0.45);
         this.noise(0.18, 0.4, 1800, 0, 'lowpass', 200, 1);
@@ -783,31 +790,16 @@ export class Sound {
         this.tone('triangle', 2637, 2637, 0.35, 0.28, 0.44);
         this.tone('triangle', 3520, 3520, 0.45, 0.2, 0.48);
         break;
-      case 'special_tea': { // 방사능 홍차: "쪼르르르륵" 따르는 소리 + "억!"
-        const ctx = this.ctx;
-        const t = this.t0;
-        const src = this.noiseSrc();
-        const f = ctx.createBiquadFilter();
-        const lfo = ctx.createOscillator();
-        const lg = ctx.createGain();
-        const g = ctx.createGain();
-        f.type = 'bandpass';
-        f.Q.value = 6;
-        f.frequency.setValueAtTime(500, t);
-        f.frequency.exponentialRampToValueAtTime(1500, t + 0.75); // 잔이 차오르며 음이 올라감
-        lfo.frequency.value = 14; // 졸졸 출렁
-        lg.gain.value = 180;
-        lfo.connect(lg).connect(f.frequency);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.7, t + 0.05);
-        g.gain.setValueAtTime(0.6, t + 0.65);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
-        src.connect(f).connect(g).connect(this.gain);
-        lfo.start(t); src.start(t, Math.random() * 0.3); lfo.stop(t + 0.85); src.stop(t + 0.85);
-        for (let i = 0; i < 8; i++) this.bubble(0.05 + i * 0.09 + Math.random() * 0.03, 500 + i * 60 + Math.random() * 200, 0.03, 0.12);
-        // 억! (마시고 쓰러지는 짧고 낮은 신음)
-        this.vowel(0.85, 0.22, 150, 95, [[600, 1], [1000, 0.5], [2400, 0.15]], 1.8);
-        this.tone('sine', 120, 50, 0.15, 0.35, 0.86);
+      case 'special_tea': { // 방사능 홍차: "우웨에엑" 구토 + 쏟아지는 소리 + 철퍽
+        // 우 → 웨 → 엑: 모음이 바뀌며 꾸르륵 떨리는 헛구역질
+        this.vowel(0, 0.22, 170, 190, [[350, 1], [700, 0.4], [2300, 0.12]], 1.6);        // 우
+        this.vowel(0.2, 0.32, 200, 230, [[550, 1], [1800, 0.6], [2600, 0.2]], 1.8);      // 웨에
+        this.vowel(0.5, 0.16, 240, 150, [[650, 1], [1700, 0.5], [2500, 0.2]], 1.9);      // 엑!
+        this.squelch(0.05, 0.6, 700, 250, 0.35, 8, 28);                                  // 꾸르륵
+        // 쏟아짐 + 철퍽
+        this.noise(0.45, 0.6, 1500, 0.62, 'lowpass', 300, 2);
+        for (let i = 0; i < 6; i++) this.bubble(0.65 + i * 0.05, 300 + Math.random() * 400, 0.03, 0.16);
+        this.splat(1.6, 0.85, 0);
         break;
       }
       case 'special_nuke': // 핵폭탄: 길고 거대한 설사 방귀 + 우르릉
