@@ -194,7 +194,7 @@ const missile = {
   },
 };
 
-// ICBM 셋: 일곱 발이 동시에 솟아올라 제각각 휘며 날아다니다 판 사방팔방 2×2를 콰광
+// ICBM 셋: 일곱 발이 동시에 솟아올라 제각각 높이가 다른 포물선을 그리며 날아가 판 사방팔방 2×2를 콰광
 const ICBM_SWARM = 7;
 const icbmSwarm = {
   area(r, c, rows, cols) {
@@ -226,8 +226,8 @@ const icbmSwarm = {
     game.fx.flash(0.25);
     for (const t of (area && area.targets) || []) {
       const tx = game.cx(t.c), ty = game.cy(t.r);
-      // 높이·휘는 정도를 제각각: 사방으로 흩어져 날아다님
-      game.fx.arcMissile(x, y, tx, ty, t.delay / 1000, game.STEP * (2.5 + Math.random() * 2.5), game.STEP * (0.8 + Math.random() * 1.2) * (Math.random() < 0.5 ? -1 : 1));
+      // 포물선 높이를 제각각: 사방으로 흩어져 날아감
+      game.fx.arcMissile(x, y, tx, ty, t.delay / 1000, game.STEP * (2.5 + Math.random() * 2.5));
       game.tw.after(t.delay, () => {
         game.fx.ring(tx, ty, 6, game.STEP * 2, 280, 10, '255,200,120');
         game.fx.ring(tx, ty, 4, game.STEP * 1.1, 180, 12);
