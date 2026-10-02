@@ -131,7 +131,7 @@ node tools/import-face.mjs trump smirk=원본1.png shock=원본2.png scream=원�
 
 ## 사운드
 
-게임을 열 때마다 소리를 켤지 묻는다(지난 선택에 포커스). 중간에는 왼쪽 위 "SOUND O/X" 버튼으로 끄고 켠다 (O 초록 = 켜짐, X 빨강 = 꺼짐). URL에 `?sound=1`/`?sound=0`을 붙이면 묻지 않는다.
+게임을 열 때마다 소리를 켤지 묻는다(지난 선택에 포커스). 중간에는 왼쪽 위 "Sound O/X" 버튼으로 끄고 켠다 (O 초록 = 켜짐, X 빨강 = 꺼짐). URL에 `?sound=1`/`?sound=0`을 붙이면 묻지 않는다.
 `assets/sounds/`에 `match.mp3`, `chain.mp3`, `clear.mp3`, `special_<종류>.mp3`를 넣으면 그 파일을, 없으면 Web Audio로 합성한 효과음을 쓴다.
 `chain`은 연쇄 단계마다 반음씩 높아진다 (x2 = 원음, x3 = +1반음 ...).
 
