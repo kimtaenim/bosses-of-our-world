@@ -818,15 +818,21 @@ export class Game {
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
     //   NUKE·ICBM 셋 → 화면 전체 폭발, 드론 셋 → 날아가서 3×3
-    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3, tariff: EFFECTS.bomb, ufo: EFFECTS.ufoStrike3, secrets: EFFECTS.secrets3, kaiju: EFFECTS.kaiju5 };
+    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3, tariff: 'shuffle', ufo: EFFECTS.ufoStrike3, secrets: EFFECTS.secrets3, kaiju: EFFECTS.kaiju5 };
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
       if (!big || g.cells.length < 3) continue; // 하나만 누른 건 보통 크기 (셋 이상 맞춰야 대폭발)
       const sorted = [...g.cells].sort((a, b) => a - b);
       const mid = sorted[Math.floor(sorted.length / 2)];
+      if (big === 'shuffle') {
+        // 관세 셋: 터지지 않고 셋 다 사라진 뒤 판 전체 리셔플
+        this.fullShuffle = true;
+        for (const i of sorted) { fired.add(i); popAt.set(i, HIT); }
+        this.sound.play('special_tariff');
+        continue;
+      }
       bigAt.set(mid, big);
-      if (this.chars[g.type].item === 'tariff') this.fullShuffle = true; // 관세 셋: 3×3 터지고 나서 전체 리셔플
       for (const i of sorted) if (i !== mid) { fired.add(i); popAt.set(i, HIT); }
     }
     for (const e of extraTriggers) triggers.push({ i: e.i, t: HIT, effect: e.effect, soundType: e.soundType });
