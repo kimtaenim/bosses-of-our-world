@@ -6,8 +6,8 @@
 //   special_<종류>  특수 타일이 터질 때 (그림 emblem으로 고름, SPECIAL_KIND)
 //     anthem 성조기: 마림바 "솔미도미솔도" (성조기여 영원하라 첫 구절)
 //     fart 인공기·러시아 국기 방귀 / car 테슬라 부르릉 / rocket 로켓 콰광
-//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / nuke 핵폭탄 콰르르릉 / boom 그 밖
-//     missile ICBM 슈우웅 쾅 / 시한폭탄은 rocket 콰광
+//     robot 로봇 삐리비리 / oil 석유 출렁 철퍽 / sns 좋아요 띠링 / nuke 핵폭탄 거대한 방귀 / boom 그 밖
+//     missile ICBM 짧은 방귀 / 시한폭탄은 rocket 콰광
 //   beep    시한폭탄 카운트다운 삑
 //   clear   판 클리어 (철퍼덕 와르르)
 
@@ -382,7 +382,7 @@ export class Sound {
   }
 
   // 방귀: 떨리는 저음 톱니파를 공명 로우패스로 + 진폭을 빠르게 덜덜 → "뿌우우웅~" 끝에 "뿡"
-  fart(size = 1, delay = 0) {
+  fart(size = 1, delay = 0, vol = 0.9) {
     const ctx = this.ctx;
     const t = this.t0 + delay;
     const p = 0.8 + Math.random() * 0.45;
@@ -414,8 +414,8 @@ export class Sound {
     f.frequency.setValueAtTime(700 * p, t);
     f.frequency.linearRampToValueAtTime(420 * p, t + dur);
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.9, t + 0.03);
-    g.gain.setValueAtTime(0.8, t + dur * 0.75);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.03);
+    g.gain.setValueAtTime(vol * 0.9, t + dur * 0.75);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(f).connect(am).connect(g).connect(this.gain);
     for (const x of [o, flut, wob]) { x.start(t); x.stop(t + dur + 0.03); }
@@ -621,18 +621,14 @@ export class Sound {
         this.tone('sine', 1568, 1568, 0.25, 0.27, 0.13);
         this.tone('sine', 2093, 2093, 0.3, 0.16, 0.22);
         break;
-      case 'special_nuke': // 핵폭탄: 번쩍 → 깊은 "콰르르르릉" 굉음이 길게 울림
-        this.noise(0.08, 0.9, 6000, 0, 'highpass', 3000, 0.7);
-        this.tone('sine', 90, 22, 1.4, 1.0, 0.03);
-        this.tone('sine', 60, 18, 1.6, 0.7, 0.08);
-        this.noise(1.6, 1.0, 1200, 0.03, 'lowpass', 50, 1.2);
-        for (let i = 0; i < 6; i++) this.noise(0.25, 0.35, 300 + Math.random() * 300, 0.3 + i * 0.18, 'lowpass', 80, 1); // 우르릉
+      case 'special_nuke': // 핵폭탄: 길고 거대한 방귀 "뿌우우우우웅~~ 뿡" + 우르릉
+        this.fart(1.9, 0, 0.6);
+        this.fart(1.5, 0.12, 0.5);
+        this.tone('sine', 70, 25, 1.3, 0.35, 0.05);
         break;
-      case 'special_missile': // ICBM: "슈우우웅" 솟구치다가 "쾅"
-        this.noise(0.45, 0.6, 500, 0, 'bandpass', 4000, 1.5);
-        this.tone('sawtooth', 200, 900, 0.4, 0.12);
-        this.tone('sine', 140, 30, 0.5, 0.85, 0.38);
-        this.noise(0.45, 0.7, 2000, 0.38, 'lowpass', 120, 1);
+      case 'special_missile': // ICBM: 발사도 방귀 "뿌웅!" 짧고 힘차게 + 철퍽
+        this.fart(0.7);
+        this.splat(1.1, 0.05);
         break;
       case 'beep': // 시한폭탄 카운트다운 "삑" (semitone 7이면 0초: 더 높게)
         this.tone('square', 1320 * k, 1320 * k, 0.07, 0.16);

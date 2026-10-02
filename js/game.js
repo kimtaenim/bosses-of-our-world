@@ -815,7 +815,7 @@ export class Game {
         this.fx.shake(pl.big ? 10 : 8);
         this.vibrate(pl.big ? [40, 30, 60] : 30);
         this.sound.special(this.chars[pl.type]); // 국기 방귀, 테슬라 부르릉, 로켓 콰광 ...
-        if (pl.big) this.sound.play('special_rocket'); // 아이템 셋: 더 큰 쾅
+        if (pl.big) this.sound.play('special_fart'); // 아이템 셋: 방귀 한 방 더
       });
     }
     for (const sp of spawns) {
