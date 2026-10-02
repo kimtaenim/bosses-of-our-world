@@ -556,6 +556,18 @@ export const EMBLEMS = {
     });
   },
 
+  // 카이주: 불타는 도시 하늘 바탕에 고질라 같은 초록 괴수 + 위에 작은 'KAIJU'
+  kaiju(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      ctx.shadowColor = 'transparent';
+      // 도시 실루엣
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      for (const [x, w, h] of [[0.05, 0.12, 0.22], [0.2, 0.1, 0.32], [0.72, 0.12, 0.28], [0.86, 0.1, 0.2]]) ctx.fillRect(x * T, (0.92 - h) * T, w * T, h * T);
+      drawKaijuShape(ctx, T * 0.5, T * 0.6, T * 0.78, 0);
+      label(ctx, T, 'KAIJU');
+    });
+  },
+
   // UFO: 보라 밤하늘에 비행접시 + 위에 작은 'UFO'
   ufo(ctx, T, color) {
     iconBg(ctx, T, color, () => {
@@ -678,5 +690,54 @@ export function drawUfoShape(ctx, cx, cy, w, spin) {
     ctx.fillStyle = i % 2 ? '#FFD84A' : '#FF5A5A';
     ctx.beginPath(); ctx.arc(x, y, 3.6 * s, 0, Math.PI * 2); ctx.fill();
   }
+  ctx.restore();
+}
+
+// 카이주 모양 (가운데 cx, cy, 크기 w, 입 벌림 roar 0~1)
+export function drawKaijuShape(ctx, cx, cy, w, roar) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  const s = w / 100;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#13240f';
+  ctx.lineWidth = 3 * s;
+  // 꼬리
+  ctx.fillStyle = '#4C8A3A';
+  ctx.beginPath();
+  ctx.moveTo(-10 * s, 22 * s);
+  ctx.quadraticCurveTo(-40 * s, 34 * s, -46 * s, 18 * s);
+  ctx.quadraticCurveTo(-34 * s, 24 * s, -12 * s, 10 * s);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 등 가시 (하얀빛 도는 판)
+  ctx.fillStyle = '#C9E7B8';
+  for (const [x, y, h] of [[-14, -14, 14], [-20, -2, 12], [-24, 10, 10], [-8, -26, 12]]) {
+    ctx.beginPath(); ctx.moveTo((x - 5) * s, y * s); ctx.lineTo((x - 9) * s, (y - h) * s); ctx.lineTo((x + 4) * s, (y - 2) * s); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  // 몸통
+  ctx.fillStyle = '#5DA046';
+  ctx.beginPath(); ctx.ellipse(0, 10 * s, 22 * s, 26 * s, 0.1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 배
+  ctx.fillStyle = '#B9D98A';
+  ctx.beginPath(); ctx.ellipse(6 * s, 14 * s, 11 * s, 18 * s, 0.1, 0, Math.PI * 2); ctx.fill();
+  // 다리
+  ctx.fillStyle = '#5DA046';
+  ctx.beginPath(); ctx.ellipse(-8 * s, 36 * s, 9 * s, 7 * s, 0, 0, Math.PI * 2); ctx.ellipse(12 * s, 36 * s, 9 * s, 7 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 팔
+  ctx.beginPath(); ctx.ellipse(20 * s, 6 * s, 9 * s, 4.5 * s, -0.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 머리
+  ctx.beginPath(); ctx.ellipse(12 * s, -24 * s, 17 * s, 12 * s, 0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 입 (roar면 크게 벌림)
+  const open = 3 + roar * 9;
+  ctx.fillStyle = '#7a1414';
+  ctx.beginPath(); ctx.ellipse(22 * s, -18 * s, 9 * s, open * s * 0.6, 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  for (const x of [16, 20, 24, 28]) { ctx.beginPath(); ctx.moveTo(x * s, (-18 - open * 0.5) * s); ctx.lineTo((x + 1.5) * s, (-18 - open * 0.5 + 3) * s); ctx.lineTo((x + 3) * s, (-18 - open * 0.5) * s); ctx.fill(); }
+  // 눈 (화난 눈썹)
+  ctx.fillStyle = '#FFE14A';
+  ctx.beginPath(); ctx.ellipse(10 * s, -28 * s, 4 * s, 3 * s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(11 * s, -28 * s, 1.6 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#13240f'; ctx.lineWidth = 2.5 * s;
+  ctx.beginPath(); ctx.moveTo(5 * s, -33 * s); ctx.lineTo(15 * s, -30 * s); ctx.stroke();
   ctx.restore();
 }

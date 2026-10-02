@@ -15,11 +15,11 @@
 const MUTE_KEY = 'bosses-of-our-world.muted';
 
 // 같은 이름 소리의 최소 간격(ms). 특수 타일 여러 개가 동시에 터져도 귀가 찢어지지 않게.
-const MIN_GAP = { beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
+const MIN_GAP = { kaiju_stomp: 120, beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 40, clear: 300, special: 90, land: 18 };
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
-export const SPECIAL_KIND = { ufo: 'ufo', secrets: 'secrets', tariff: 'tariff', drone: 'drone', tea: 'tea', nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
+export const SPECIAL_KIND = { kaiju: 'kaiju', ufo: 'ufo', secrets: 'secrets', tariff: 'tariff', drone: 'drone', tea: 'tea', nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -696,6 +696,37 @@ export class Sound {
         for (const x of [o, lfo, wob]) { x.start(t); x.stop(t + 1.15); }
         break;
       }
+      case 'special_kaiju': { // 카이주 울음: "끼야아아오오오~" 쇳소리 섞인 긴 포효
+        const ctx = this.ctx;
+        const t = this.t0;
+        for (const [f0, f1, type, vol] of [[420, 260, 'sawtooth', 0.22], [436, 250, 'sawtooth', 0.18], [110, 70, 'square', 0.12]]) {
+          const o = ctx.createOscillator();
+          const f = ctx.createBiquadFilter();
+          const g = ctx.createGain();
+          const vib = ctx.createOscillator();
+          const vg = ctx.createGain();
+          o.type = type;
+          o.frequency.setValueAtTime(f0 * 0.7, t);
+          o.frequency.linearRampToValueAtTime(f0, t + 0.25);
+          o.frequency.linearRampToValueAtTime(f1, t + 1.1);
+          vib.frequency.value = 23; vg.gain.value = f0 * 0.04;
+          vib.connect(vg).connect(o.frequency);
+          f.type = 'bandpass'; f.frequency.value = 1400; f.Q.value = 0.9;
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(vol, t + 0.2);
+          g.gain.setValueAtTime(vol * 0.9, t + 0.85);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 1.15);
+          o.connect(f).connect(g).connect(this.gain);
+          for (const x of [o, vib]) { x.start(t); x.stop(t + 1.2); }
+        }
+        this.noise(1.1, 0.25, 2500, 0, 'bandpass', 1200, 1.5); // 쇳소리 바람
+        break;
+      }
+      case 'kaiju_stomp': // 쿵! + 부서지는 소리
+        this.tone('sine', 90, 35, 0.25, 0.8);
+        this.noise(0.18, 0.5, 1800, 0, 'lowpass', 200, 1);
+        for (let i = 0; i < 4; i++) this.noise(0.03, 0.25, 2000 + Math.random() * 2000, 0.04 + i * 0.03, 'bandpass');
+        break;
       case 'special_ufo': { // UFO: "위우~위우~" 테레민처럼 출렁이는 소리
         const ctx = this.ctx;
         const t = this.t0;

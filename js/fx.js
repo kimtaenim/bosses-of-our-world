@@ -1,4 +1,4 @@
-import { drawDroneShape, drawUfoShape } from './emblems.js';
+import { drawDroneShape, drawUfoShape, drawKaijuShape } from './emblems.js';
 // 파티클·링·텍스트·화면 흔들림. 좌표는 보드 논리 px.
 // juice: CONFIG.JUICE 배율, reduced: prefers-reduced-motion (흔들림·파티클 끔)
 
@@ -18,6 +18,7 @@ export class FX {
     this.rockets = [];
     this.arcs = []; // 포물선 미사일
     this.drones = []; // 비틀비틀 날아가는 드론
+    this.kaijus = []; // 칸에서 칸으로 쿵쿵 걷는 괴수
     this.zaps = [];
     this.flashA = 0;   // 화면 전체 흰 번쩍임
     this.shakeAmp = 0;
@@ -159,6 +160,12 @@ export class FX {
     this.drones.push({ x0, y0, x1, y1, dur, size, kind, t: 0, x: x0, y: y0, tilt: 0, ph });
   }
 
+  // 카이주: points [{x,y}] 를 stepDur 초마다 한 칸씩 쿵쿵 뛰어 이동, 끝나면 사라짐
+  kaiju(points, stepDur, size) {
+    if (this.juice <= 0) return;
+    this.kaijus.push({ points, stepDur, size, t: 0 });
+  }
+
   shake(px) {
     if (this.reduced || this.juice <= 0) return;
     this.shakeAmp = Math.max(this.shakeAmp, Math.min(px * this.juice, 10 * Math.max(1, this.juice)));
@@ -243,6 +250,8 @@ export class FX {
       d.x = nx; d.y = ny;
     }
     this.drones = this.drones.filter((d) => d.t < d.dur);
+    for (const k of this.kaijus) k.t += s;
+    this.kaijus = this.kaijus.filter((k) => k.t < k.stepDur * (k.points.length - 1) + 0.35);
     for (const z of this.zaps) z.t += s;
     this.zaps = this.zaps.filter((z) => z.t < z.dur);
     for (const b of this.beams) b.t += s;
@@ -275,6 +284,24 @@ export class FX {
 
     for (const rk of this.rockets) this.drawRocket(ctx, rk);
     for (const a of this.arcs) this.drawRocket(ctx, a, a.ang);
+    for (const k of this.kaijus) {
+      const n = k.points.length - 1;
+      const f = k.t / k.stepDur;
+      const i = Math.min(Math.floor(f), n);
+      const p = i >= n ? 1 : f - i;
+      const a = k.points[i], b = k.points[Math.min(i + 1, n)];
+      const x = a.x + (b.x - a.x) * p, y = a.y + (b.y - a.y) * p - Math.sin(p * Math.PI) * 26;
+      const end = k.t > k.stepDur * n;
+      const fade = end ? Math.max(0, 1 - (k.t - k.stepDur * n) / 0.35) : 1;
+      ctx.save();
+      ctx.globalAlpha = fade;
+      ctx.translate(x, y);
+      if (b.x < a.x) ctx.scale(-1, 1); // 가는 쪽을 봄
+      const squash = 1 + Math.sin(Math.min(p * 2, 1) * Math.PI) * 0.06;
+      ctx.scale(1, squash);
+      drawKaijuShape(ctx, 0, 0, k.size * (1 + (end ? 0.3 * (1 - fade) : 0)), i === 0 && p < 0.6 ? 1 : 0.4 + 0.3 * Math.sin(k.t * 20));
+      ctx.restore();
+    }
     for (const d of this.drones) {
       ctx.save();
       ctx.translate(d.x, d.y);
