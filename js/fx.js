@@ -15,6 +15,7 @@ export class FX {
     this.texts = [];
     this.beams = [];
     this.rockets = [];
+    this.arcs = []; // 포물선 미사일
     this.zaps = [];
     this.flashA = 0;   // 화면 전체 흰 번쩍임
     this.shakeAmp = 0;
@@ -142,6 +143,12 @@ export class FX {
     this.rockets.push({ x, y, vy: -200, t: 0 });
   }
 
+  // 포물선을 그리며 (x0,y0) → (x1,y1)로 날아가는 미사일. dur 초, peak px만큼 위로 솟음
+  arcMissile(x0, y0, x1, y1, dur, peak) {
+    if (this.juice <= 0) return;
+    this.arcs.push({ x0, y0, x1, y1, dur, peak, t: 0, x: x0, y: y0, ang: 0 });
+  }
+
   shake(px) {
     if (this.reduced || this.juice <= 0) return;
     this.shakeAmp = Math.max(this.shakeAmp, Math.min(px * this.juice, 10 * Math.max(1, this.juice)));
@@ -183,6 +190,24 @@ export class FX {
       }
     }
     this.rockets = this.rockets.filter((rk) => rk.y > -400);
+    for (const a of this.arcs) {
+      a.t += s;
+      const p = Math.min(a.t / a.dur, 1);
+      const nx = a.x0 + (a.x1 - a.x0) * p;
+      const ny = a.y0 + (a.y1 - a.y0) * p - a.peak * 4 * p * (1 - p);
+      a.ang = Math.atan2(ny - a.y, nx - a.x) + Math.PI / 2; // 머리가 진행 방향
+      a.x = nx; a.y = ny;
+      if (this.particlesOn) {
+        for (let k = 0; k < 3 && this.particles.length < MAX_PARTICLES; k++) {
+          this.particles.push({
+            x: a.x + rand(-4, 4), y: a.y + rand(-4, 4), vx: rand(-40, 40), vy: rand(-40, 40),
+            g: 0, size: rand(4, 8), color: Math.random() < 0.5 ? '#FFB02E' : '#d8d8d8',
+            rot: 0, vr: 0, life: 0, maxLife: rand(0.25, 0.45), kind: 'debris',
+          });
+        }
+      }
+    }
+    this.arcs = this.arcs.filter((a) => a.t < a.dur);
     for (const z of this.zaps) z.t += s;
     this.zaps = this.zaps.filter((z) => z.t < z.dur);
     for (const b of this.beams) b.t += s;
@@ -214,6 +239,7 @@ export class FX {
     }
 
     for (const rk of this.rockets) this.drawRocket(ctx, rk);
+    for (const a of this.arcs) this.drawRocket(ctx, a, a.ang);
 
     for (const z of this.zaps) {
       if (z.t < 0) continue;
@@ -235,9 +261,10 @@ export class FX {
     this.drawRest(ctx);
   }
 
-  drawRocket(ctx, rk) {
+  drawRocket(ctx, rk, ang = 0) {
     ctx.save();
     ctx.translate(rk.x, rk.y);
+    if (ang) ctx.rotate(ang);
     const W = 14, L = 40;
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#1d2747';

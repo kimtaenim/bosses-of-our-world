@@ -157,17 +157,40 @@ const xblast = {
   },
 };
 
+const MISSILE_FLIGHT = 520; // ms
+
 const missile = {
-  // ICBM: 세로 한 열 전체 + 미사일이 위로 솟구침
-  area: column.area,
-  play(game, r, c, rows) {
+  // ICBM: 포물선을 그리며 아무 곳에나 날아가 무작위 2×2를 콰광
+  area(r, c, rows, cols) {
+    const tr = Math.floor(Math.random() * (rows - 1));
+    const tc = Math.floor(Math.random() * (cols - 1));
+    const out = [{ r, c, delay: 0 }];
+    for (let dr = 0; dr < 2; dr++) {
+      for (let dc = 0; dc < 2; dc++) {
+        const rr = tr + dr, cc = tc + dc;
+        if (rr === r && cc === c) continue;
+        out.push({ r: rr, c: cc, delay: MISSILE_FLIGHT });
+      }
+    }
+    return out;
+  },
+  play(game, r, c, rows, cols, area) {
     const x = game.cx(c), y = game.cy(r);
-    const sweep = Math.max(r, rows - 1 - r) * 25 + 25;
-    game.fx.vbeam(x, y, 0, game.BH, game.T * 0.95, sweep / 0.7);
-    game.fx.rocket(x, y);
-    game.fx.ring(x, y, 6, game.STEP * 1.5, 240, 8, '255,200,120');
-    game.fx.burst(x, y, '#ffb347', 18, 1.3);
-    game.fx.burst(x, y, '#ffffff', 10, 1.1);
+    const target = (area || []).filter((a) => a.delay > 0);
+    if (!target.length) return;
+    const tx = target.reduce((s, a) => s + game.cx(a.c), 0) / target.length;
+    const ty = target.reduce((s, a) => s + game.cy(a.r), 0) / target.length;
+    game.fx.ring(x, y, 4, game.STEP * 0.9, 180, 6, '255,200,120');
+    game.fx.arcMissile(x, y, tx, ty, MISSILE_FLIGHT / 1000, game.STEP * 2.2);
+    game.tw.after(MISSILE_FLIGHT, () => {
+      game.fx.ring(tx, ty, 6, game.STEP * 2, 280, 10, '255,200,120');
+      game.fx.ring(tx, ty, 4, game.STEP * 1.1, 180, 12);
+      game.fx.burst(tx, ty, '#ffb347', 24, 1.5);
+      game.fx.burst(tx, ty, '#ffffff', 12, 1.2);
+      game.fx.flash(0.3);
+      game.fx.shake(7);
+      game.sound.play('special_rocket'); // 콰광
+    });
   },
 };
 
