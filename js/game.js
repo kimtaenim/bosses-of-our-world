@@ -718,8 +718,8 @@ export class Game {
     const chained = []; // 다른 특수 효과에 맞아 연쇄 발동하는 특수 타일
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
-    //   NUKE든 ICBM이든 셋 맞추면 화면 전체 폭발
-    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.screen };
+    //   NUKE·ICBM 셋 → 화면 전체 폭발, 드론 셋 → 날아가서 3×3
+    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3 };
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
@@ -747,7 +747,7 @@ export class Game {
       if (!effect) continue;
       const [r, c] = board.rc(i);
       const area = effect.area(r, c, rows, cols, board, tile.type);
-      plays.push({ t, effect, r, c, area, type: tile.type, big: !!override });
+      plays.push({ t, effect, r, c, area, type: tile.type, big: override === EFFECTS.screen });
       for (const a of area) {
         const j = board.idx(a.r, a.c);
         const tt = t + a.delay;
