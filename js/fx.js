@@ -1,4 +1,4 @@
-import { drawDroneShape } from './emblems.js';
+import { drawDroneShape, drawUfoShape } from './emblems.js';
 // 파티클·링·텍스트·화면 흔들림. 좌표는 보드 논리 px.
 // juice: CONFIG.JUICE 배율, reduced: prefers-reduced-motion (흔들림·파티클 끔)
 
@@ -152,10 +152,11 @@ export class FX {
   }
 
   // 드론: (x0,y0) → (x1,y1)로 요리조리 비틀비틀 날아감 (dur 초)
-  droneFly(x0, y0, x1, y1, dur, size) {
+  // kind 'ufo'면 빙글빙글 원을 그리며 날아감
+  droneFly(x0, y0, x1, y1, dur, size, kind = 'drone') {
     if (this.juice <= 0) return;
     const ph = Math.random() * 6;
-    this.drones.push({ x0, y0, x1, y1, dur, size, t: 0, x: x0, y: y0, tilt: 0, ph });
+    this.drones.push({ x0, y0, x1, y1, dur, size, kind, t: 0, x: x0, y: y0, tilt: 0, ph });
   }
 
   shake(px) {
@@ -224,11 +225,20 @@ export class FX {
       const dx = d.x1 - d.x0, dy = d.y1 - d.y0;
       const len = Math.hypot(dx, dy) || 1;
       // 진행 방향에 수직으로 크게 갈지자, 위아래로 둥실, 처음엔 위로 솟음
-      const side = Math.sin(p * Math.PI * 3 + d.ph) * 40 * Math.sin(p * Math.PI);
-      const lift = -60 * Math.sin(p * Math.PI);
-      const bob = Math.sin(d.t * 22) * 3;
-      const nx = d.x0 + dx * e + (-dy / len) * side;
-      const ny = d.y0 + dy * e + (dx / len) * side + lift + bob;
+      let nx, ny;
+      if (d.kind === 'ufo') {
+        // 빙글빙글: 목적지로 가면서 반지름 커졌다 작아지는 원을 세 바퀴
+        const rad = 55 * Math.sin(p * Math.PI);
+        const a = d.ph + p * Math.PI * 6;
+        nx = d.x0 + dx * e + Math.cos(a) * rad;
+        ny = d.y0 + dy * e + Math.sin(a) * rad * 0.6 - 40 * Math.sin(p * Math.PI);
+      } else {
+        const side = Math.sin(p * Math.PI * 3 + d.ph) * 40 * Math.sin(p * Math.PI);
+        const lift = -60 * Math.sin(p * Math.PI);
+        const bob = Math.sin(d.t * 22) * 3;
+        nx = d.x0 + dx * e + (-dy / len) * side;
+        ny = d.y0 + dy * e + (dx / len) * side + lift + bob;
+      }
       d.tilt = Math.max(-0.5, Math.min(0.5, (nx - d.x) * 0.08)) + Math.sin(d.t * 9) * 0.12;
       d.x = nx; d.y = ny;
     }
@@ -269,7 +279,8 @@ export class FX {
       ctx.save();
       ctx.translate(d.x, d.y);
       ctx.rotate(d.tilt);
-      drawDroneShape(ctx, 0, 0, d.size, d.t * 60);
+      if (d.kind === 'ufo') drawUfoShape(ctx, 0, 0, d.size, d.t * 14);
+      else drawDroneShape(ctx, 0, 0, d.size, d.t * 60);
       ctx.restore();
     }
 

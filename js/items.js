@@ -1,4 +1,6 @@
 // 아이템 타일: 위에서 떨어져 내려오는 특수 타일 (그림 파일이 없으면 emblems.js의 코드 그림)
+//   ufo       UFO — 51판부터 지울 때마다 1/8(판마다 점점 드물게). 탭하면 빙글빙글 돌며 날아가 무작위 한 칸 펑. 셋 맞추면 날아가서 3×3.
+//   secrets   기밀 파일(SECRETS) — 61판부터 지울 때마다 1/8(판마다 점점 드물게). 탭하면 서류가 날리며 가로 한 줄. 셋 맞추면 가로 세 줄.
 //   tariff    관세(TARIFF) — 31판부터 지울 때마다 1/8 확률(판마다 점점 드물게). 탭하면 주변 3×3을 리셔플, 셋을 맞추면 3×3 터지고 전체 리셔플.
 //   drone     드론 — 21판부터 지울 때마다 1/6 확률(판마다 점점 드물게). 탭하면 위잉 비틀비틀 날아가 무작위 한 칸에 펑, 셋 맞추면 날아가서 3×3. 판 위에서 둥실둥실. (인물이 아님, 매치되지 않음, 탭하면 발동)
 //   nuke      핵폭탄(NUKE) — 41판부터 지울 때마다 1/10 확률(판마다 점점 드물게). 탭하면 3×3, 셋을 한 줄로 맞추면 화면 전체 폭발.
@@ -8,6 +10,8 @@
 // special에 적힌 그림 파일(정사각)이 있으면 코드 그림 대신 그 그림을 쓴다.
 
 export const ITEMS = [
+  { id: 'ufo', item: 'ufo', name: 'UFO', group: 'item', color: '#2B1B4E', initial: 'U', emblem: 'ufo', effect: 'ufoStrike' },
+  { id: 'secrets', item: 'secrets', name: '기밀 파일', group: 'item', color: '#3B4A3F', initial: 'S', emblem: 'secrets', effect: 'secrets' },
   { id: 'tariff', item: 'tariff', name: '관세', group: 'item', color: '#B3261E', initial: 'T', emblem: 'tariff' },
   { id: 'drone', item: 'drone', name: '드론', group: 'item', color: '#1777EA', initial: 'D', emblem: 'drone', effect: 'droneStrike', special: 'assets/special/drone.webp', label: 'DRONE' },
   { id: 'nuke', item: 'nuke', name: '핵폭탄', group: 'item', color: '#2A2F3A', initial: 'N', emblem: 'nuke', effect: 'bomb' },

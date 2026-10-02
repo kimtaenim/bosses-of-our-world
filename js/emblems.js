@@ -556,6 +556,48 @@ export const EMBLEMS = {
     });
   },
 
+  // UFO: 보라 밤하늘에 비행접시 + 위에 작은 'UFO'
+  ufo(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      for (const [x, y, r] of [[0.15, 0.3, 0.012], [0.85, 0.36, 0.01], [0.78, 0.85, 0.012], [0.2, 0.82, 0.01]]) { ctx.beginPath(); ctx.arc(x * T, y * T, r * T, 0, Math.PI * 2); ctx.fill(); }
+      drawUfoShape(ctx, T / 2, T * 0.58, T * 0.82, 0);
+      label(ctx, T, 'UFO');
+    });
+  },
+
+  // 기밀 파일: 짙은 바탕에 마닐라 서류철 + 빨간 TOP SECRET 도장 + 위에 작은 'SECRETS'
+  secrets(ctx, T, color) {
+    iconBg(ctx, T, color, () => {
+      // 서류철 뒷장 + 탭
+      ctx.fillStyle = '#C9A24E';
+      ctx.beginPath();
+      ctx.moveTo(T * 0.16, T * 0.34); ctx.lineTo(T * 0.4, T * 0.34); ctx.lineTo(T * 0.45, T * 0.29); ctx.lineTo(T * 0.84, T * 0.29);
+      ctx.lineTo(T * 0.84, T * 0.82); ctx.lineTo(T * 0.16, T * 0.82); ctx.closePath(); ctx.fill();
+      ctx.shadowColor = 'transparent';
+      // 삐져나온 서류
+      ctx.fillStyle = '#ffffff';
+      ctx.save(); ctx.translate(T * 0.52, T * 0.5); ctx.rotate(-0.08); ctx.fillRect(-T * 0.28, -T * 0.16, T * 0.56, T * 0.3); ctx.restore();
+      ctx.strokeStyle = '#9aa3ad'; ctx.lineWidth = T * 0.012;
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(T * 0.3, T * (0.42 + i * 0.05)); ctx.lineTo(T * 0.7, T * (0.39 + i * 0.05)); ctx.stroke(); }
+      // 앞장
+      ctx.fillStyle = '#E2BC63';
+      ctx.fillRect(T * 0.16, T * 0.52, T * 0.68, T * 0.3);
+      // TOP SECRET 도장
+      ctx.save();
+      ctx.translate(T * 0.5, T * 0.67); ctx.rotate(-0.14);
+      ctx.strokeStyle = '#C4161C'; ctx.lineWidth = T * 0.022;
+      ctx.strokeRect(-T * 0.27, -T * 0.075, T * 0.54, T * 0.15);
+      ctx.fillStyle = '#C4161C';
+      ctx.font = `900 ${T * 0.09}px system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('TOP SECRET', 0, T * 0.005);
+      ctx.restore();
+      label(ctx, T, 'SECRETS');
+    });
+  },
+
   // 드론 (그림 파일이 없을 때 대신 그리는 것)
   drone(ctx, T, color) {
     iconBg(ctx, T, color, () => {
@@ -601,5 +643,40 @@ export function drawDroneShape(ctx, cx, cy, w, spin) {
   // 눈
   ctx.fillStyle = '#111';
   ctx.beginPath(); ctx.arc(-8 * s, -2 * s, 3.5 * s, 0, Math.PI * 2); ctx.arc(8 * s, -2 * s, 3.5 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// UFO 모양 (가운데 cx, cy, 폭 w, 불빛 회전 spin)
+export function drawUfoShape(ctx, cx, cy, w, spin) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  const s = w / 100;
+  // 빔
+  ctx.fillStyle = 'rgba(160,255,170,0.18)';
+  ctx.beginPath(); ctx.moveTo(-14 * s, 8 * s); ctx.lineTo(14 * s, 8 * s); ctx.lineTo(26 * s, 34 * s); ctx.lineTo(-26 * s, 34 * s); ctx.closePath(); ctx.fill();
+  // 돔 + 외계인
+  const dome = ctx.createRadialGradient(-6 * s, -18 * s, 2 * s, 0, -10 * s, 22 * s);
+  dome.addColorStop(0, 'rgba(220,255,255,0.95)'); dome.addColorStop(1, 'rgba(90,200,230,0.85)');
+  ctx.fillStyle = dome;
+  ctx.beginPath(); ctx.ellipse(0, -8 * s, 20 * s, 18 * s, 0, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#5BD06A';
+  ctx.beginPath(); ctx.ellipse(0, -12 * s, 7 * s, 8 * s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.ellipse(-3 * s, -13 * s, 2.2 * s, 3 * s, -0.3, 0, Math.PI * 2); ctx.ellipse(3 * s, -13 * s, 2.2 * s, 3 * s, 0.3, 0, Math.PI * 2); ctx.fill();
+  // 접시
+  const disc = ctx.createLinearGradient(0, -8 * s, 0, 10 * s);
+  disc.addColorStop(0, '#e6e9ef'); disc.addColorStop(1, '#8a92a3');
+  ctx.fillStyle = disc;
+  ctx.strokeStyle = '#2b2f3a';
+  ctx.lineWidth = 2.5 * s;
+  ctx.beginPath(); ctx.ellipse(0, 0, 46 * s, 13 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 돌아가는 불빛
+  for (let i = 0; i < 6; i++) {
+    const a = spin + (i * Math.PI) / 3;
+    const x = Math.cos(a) * 36 * s, y = Math.sin(a) * 6 * s + 2 * s;
+    if (Math.sin(a) < -0.2) continue; // 뒤쪽은 안 보임
+    ctx.fillStyle = i % 2 ? '#FFD84A' : '#FF5A5A';
+    ctx.beginPath(); ctx.arc(x, y, 3.6 * s, 0, Math.PI * 2); ctx.fill();
+  }
   ctx.restore();
 }

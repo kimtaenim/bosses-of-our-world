@@ -19,7 +19,7 @@ const MIN_GAP = { beep: 80, special_anthem: 3200, miss: 300, match: 45, chain: 4
 
 
 // 특수 타일 그림(emblem) → 효과음 종류
-export const SPECIAL_KIND = { tariff: 'tariff', drone: 'drone', tea: 'tea', nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
+export const SPECIAL_KIND = { ufo: 'ufo', secrets: 'secrets', tariff: 'tariff', drone: 'drone', tea: 'tea', nuke: 'nuke', timebomb: 'rocket', missile: 'missile', us: 'anthem', nk: 'fart', ru: 'fart', car: 'car', rocket: 'rocket', robot: 'robot', oil: 'oil', sns: 'sns' };
 
 export class Sound {
   constructor(cfg) {
@@ -696,6 +696,37 @@ export class Sound {
         for (const x of [o, lfo, wob]) { x.start(t); x.stop(t + 1.15); }
         break;
       }
+      case 'special_ufo': { // UFO: "위우~위우~" 테레민처럼 출렁이는 소리
+        const ctx = this.ctx;
+        const t = this.t0;
+        const o = ctx.createOscillator();
+        const vib = ctx.createOscillator();
+        const vg = ctx.createGain();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(600, t);
+        o.frequency.linearRampToValueAtTime(900, t + 0.6);
+        o.frequency.linearRampToValueAtTime(500, t + 1.3);
+        vib.frequency.value = 7;
+        vg.gain.value = 90;
+        vib.connect(vg).connect(o.frequency);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.28, t + 0.1);
+        g.gain.setValueAtTime(0.25, t + 1.1);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+        o.connect(g).connect(this.gain);
+        for (const x of [o, vib]) { x.start(t); x.stop(t + 1.35); }
+        break;
+      }
+      case 'ufo_zap': // UFO 착탄: "뿅~" 레이저 + 펑
+        this.tone('square', 1800, 200, 0.18, 0.22);
+        this.tone('sine', 150, 40, 0.35, 0.7, 0.05);
+        this.noise(0.3, 0.5, 1500, 0.05, 'lowpass', 150, 1);
+        break;
+      case 'special_secrets': // 기밀 파일: 서류 "촤라라락" 흩날림 + "슈욱"
+        for (let i = 0; i < 10; i++) this.noise(0.05, 0.4, 2500 + Math.random() * 2500, i * 0.035, 'highpass', 2000, 0.7);
+        this.noise(0.35, 0.5, 400, 0, 'bandpass', 3000, 1.2);
+        break;
       case 'special_tariff': // 관세: 리셔플처럼 올라가는 카주 + 지폐 촤라락 + "카칭!"
         this.kazoo(392 * Math.pow(2, 5 / 12), 0, 0.09, 0.5);
         this.kazoo(523 * Math.pow(2, 5 / 12), 0.08, 0.16, 0.55);

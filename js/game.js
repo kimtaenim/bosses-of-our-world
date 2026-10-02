@@ -58,7 +58,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
-    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile' | 'drone' | 'tariff')
+    this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile' | 'drone' | 'tariff' | 'ufo' | 'secrets')
     this.lastMatch = 0;
     this.lastTs = 0;
     const saved = loadProgress();
@@ -710,6 +710,9 @@ export class Game {
     if (this.level >= 31 && Math.random() < 1 / (8 + this.level - 31)) this.pendingItems.push('tariff');
     // 41판부터 핵폭탄: 처음엔 1/10, 판마다 점점 드물게
     if (this.level >= 41 && Math.random() < 1 / (10 + this.level - 41)) this.pendingItems.push('nuke');
+    // 51판부터 UFO, 61판부터 기밀 파일: 처음엔 1/8, 판마다 점점 드물게
+    if (this.level >= 51 && Math.random() < 1 / (8 + this.level - 51)) this.pendingItems.push('ufo');
+    if (this.level >= 61 && Math.random() < 1 / (8 + this.level - 61)) this.pendingItems.push('secrets');
   }
 
   // 아이템 확률의 분모: 20판까지 10, 21판 11, 22판 12 ...
@@ -786,7 +789,7 @@ export class Game {
     const plays = [];
     // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
     //   NUKE·ICBM 셋 → 화면 전체 폭발, 드론 셋 → 날아가서 3×3
-    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3, tariff: EFFECTS.bomb };
+    const BIG = { nuke: EFFECTS.screen, missile: EFFECTS.screen, drone: EFFECTS.droneStrike3, tariff: EFFECTS.bomb, ufo: EFFECTS.ufoStrike3, secrets: EFFECTS.secrets3 };
     const bigAt = new Map();
     for (const g of m.groups) {
       const big = this.chars[g.type] && BIG[this.chars[g.type].item];
@@ -1171,7 +1174,7 @@ export class Game {
     if (fuse === 0) ox += (Math.random() * 2 - 1) * 5;
     let oy = (t.hy || 0) + t.oy;
     // 드론은 판 위에서 둥실둥실, 살짝 기우뚱 (날 수 있다는 표시)
-    if (t.item === 'drone') { oy += Math.sin(ts / 260 + t.phase) * 3.5 - 2; ox += Math.sin(ts / 410 + t.phase) * 1.5; }
+    if (t.item === 'drone' || t.item === 'ufo') { oy += Math.sin(ts / 260 + t.phase) * 3.5 - 2; ox += Math.sin(ts / 410 + t.phase) * 1.5; }
     if (selected) ox += (Math.random() * 2 - 1) * 0.9 * amp;
     // 평소 숨쉬듯 살짝 들썩
     if (t.exprPrio === 0) oy += Math.sin(ts / 520 + t.phase) * 0.8 * amp * this.faces.activity;

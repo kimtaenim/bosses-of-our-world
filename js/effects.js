@@ -251,6 +251,80 @@ const droneStrike3 = {
   },
 };
 
+// UFO: 드론과 같은 흐름이지만 빙글빙글 돌며 날아감
+const UFO_FLIGHT = 1300;
+const ufoStrike = {
+  area(r, c, rows, cols) {
+    let tr, tc;
+    do { tr = Math.floor(Math.random() * rows); tc = Math.floor(Math.random() * cols); } while (tr === r && tc === c);
+    return [{ r, c, delay: 0 }, { r: tr, c: tc, delay: UFO_FLIGHT }];
+  },
+  play(game, r, c, rows, cols, area) {
+    const t = (area || []).find((a) => a.delay > 0);
+    if (!t) return;
+    const tx = game.cx(t.c), ty = game.cy(t.r);
+    game.fx.droneFly(game.cx(c), game.cy(r), tx, ty, UFO_FLIGHT / 1000, game.T * 1.15, 'ufo');
+    game.tw.after(UFO_FLIGHT, () => {
+      game.fx.ring(tx, ty, 4, game.STEP * 1.3, 240, 9, '140,255,160');
+      game.fx.burst(tx, ty, '#8CFFA0', 16, 1.3);
+      game.fx.burst(tx, ty, '#ffffff', 10, 1.1);
+      game.fx.shake(5);
+      game.sound.play('ufo_zap');
+    });
+  },
+};
+const ufoStrike3 = {
+  area(r, c, rows, cols) {
+    const out = droneStrike3.area(r, c, rows, cols);
+    for (const a of out) if (a.delay > 0) a.delay += UFO_FLIGHT - DRONE_FLIGHT;
+    return out;
+  },
+  play(game, r, c, rows, cols, area) {
+    const ctr = area && area.center;
+    if (!ctr) return;
+    const tx = game.cx(ctr.c), ty = game.cy(ctr.r);
+    game.fx.droneFly(game.cx(c), game.cy(r), tx, ty, UFO_FLIGHT / 1000, game.T * 1.25, 'ufo');
+    game.tw.after(UFO_FLIGHT, () => {
+      game.fx.ring(tx, ty, 6, game.STEP * 3, 280, 10, '140,255,160');
+      game.fx.burst(tx, ty, '#8CFFA0', 24, 1.6);
+      game.fx.flash(0.3);
+      game.fx.shake(8);
+      game.sound.play('ufo_zap');
+    });
+  },
+};
+
+// 기밀 파일: 가로 한 줄이 날아감 (서류가 흩날림)
+const secrets = {
+  area: row.area,
+  play(game, r, c, rows, cols) {
+    row.play(game, r, c, rows, cols);
+    const y = game.cy(r);
+    for (let cc = 0; cc < cols; cc++) game.fx.burst(game.cx(cc), y, '#ffffff', 5, 1.2);
+    game.fx.burst(game.cx(c), y, '#E2BC63', 10, 1.3);
+  },
+};
+const secrets3 = {
+  // 기밀 파일 셋: 가로 세 줄
+  area(r, c, rows, cols) {
+    const out = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      const rr = r + dr;
+      if (rr < 0 || rr >= rows) continue;
+      for (let cc = 0; cc < cols; cc++) out.push({ r: rr, c: cc, delay: Math.abs(cc - c) * 25 + Math.abs(dr) * 30 });
+    }
+    return out;
+  },
+  play(game, r, c, rows, cols) {
+    for (let dr = -1; dr <= 1; dr++) {
+      const rr = r + dr;
+      if (rr < 0 || rr >= rows) continue;
+      row.play(game, rr, c, rows, cols);
+      for (let cc = 0; cc < cols; cc++) game.fx.burst(game.cx(cc), game.cy(rr), '#ffffff', 4, 1.3);
+    }
+  },
+};
+
 const missile3 = {
   // ICBM 셋: 자기 열과 양옆 열, 세로 세 줄 전체 + 미사일 세 발
   area(r, c, rows, cols) {
@@ -302,7 +376,7 @@ const screen = {
 };
 
 export const EFFECTS = {
-  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen, droneStrike, droneStrike3,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, missile, missile3, screen, droneStrike, droneStrike3, ufoStrike, ufoStrike3, secrets, secrets3,
   // 그룹 기본값
   politician: bomb,
   business: row,
