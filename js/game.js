@@ -807,7 +807,17 @@ export class Game {
     }
     await this.tw.wait(end);
 
-    this.addScore(removed.length, cascade, [...m.matched]);
+    // 4개짜리 ×2, 5개 이상 ×4: 그 줄의 칸 수만큼 점수를 더 얹는다 (폭발·연쇄로 터진 칸은 그대로)
+    let extra = 0;
+    for (const g of m.groups) {
+      const mult = this.matchMult(g.cells.length);
+      if (mult <= 1) continue;
+      extra += g.cells.length * (mult - 1);
+      let sx = 0, sy = 0;
+      for (const i of g.cells) { const [r, c] = board.rc(i); sx += this.cx(c); sy += this.cy(r); }
+      this.fx.popup(sx / g.cells.length, sy / g.cells.length - 30, `${g.cells.length}개! ×${mult}`, '#FFD84A', 22);
+    }
+    this.addScore(removed.length + extra, cascade, [...m.matched]);
     const gone = new Set(removed.map((e) => e.tile));
     this.dying = this.dying.filter((t) => !gone.has(t));
   }
@@ -851,6 +861,14 @@ export class Game {
         if (t && Math.random() < chance && this.faces.set(t, 'shock', 380, PRIO.REACT)) this.faces.hop(t, 4 + cascade, 260);
       }
     }
+  }
+
+  // 한 줄 길이별 점수 배율: 3개 ×1, 4개 ×2, 5개 이상 ×4 (config MATCH_MULT)
+  matchMult(n) {
+    const t = this.cfg.MATCH_MULT || { 4: 2, 5: 4 };
+    let m = 1;
+    for (const k of Object.keys(t).map(Number).sort((a, b) => a - b)) if (n >= k) m = t[k];
+    return m;
   }
 
   addScore(count, cascade, cells = null) {

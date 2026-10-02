@@ -53,9 +53,9 @@ export class FX {
   }
 
   // 점수 팝업 (+30)
-  popup(x, y, str) {
+  popup(x, y, str, color = '#ffffff', size = 18) {
     if (this.juice <= 0) return;
-    this.texts.push({ x, y, str, t: 0, dur: 0.65, size: 18, color: '#ffffff', kind: 'popup' });
+    this.texts.push({ x, y, str, t: 0, dur: size > 18 ? 0.9 : 0.65, size, color, kind: 'popup' });
   }
 
   flash(a) {
