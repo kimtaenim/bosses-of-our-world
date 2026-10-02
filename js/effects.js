@@ -170,8 +170,33 @@ const dove = {
   },
 };
 
+const dove3 = {
+  // 비둘기 민병대 셋: 자기 열과 양옆 열, 세로 세 줄 전체
+  area(r, c, rows, cols) {
+    const out = [];
+    for (let dc = -1; dc <= 1; dc++) {
+      const cc = c + dc;
+      if (cc < 0 || cc >= cols) continue;
+      for (let rr = 0; rr < rows; rr++) out.push({ r: rr, c: cc, delay: Math.abs(rr - r) * 25 + Math.abs(dc) * 30 });
+    }
+    return out;
+  },
+  play(game, r, c, rows, cols) {
+    const sweep = Math.max(r, rows - 1 - r) * 25 + 25;
+    for (let dc = -1; dc <= 1; dc++) {
+      const cc = c + dc;
+      if (cc < 0 || cc >= cols) continue;
+      game.fx.vbeam(game.cx(cc), game.cy(r), 0, game.BH, game.T * 0.95, sweep / 0.7);
+    }
+    const x = game.cx(c), y = game.cy(r);
+    game.fx.ring(x, y, 8, game.STEP * 3, 300, 12, '255,255,255');
+    game.fx.burst(x, y, '#ffffff', 34, 1.7);
+    game.fx.burst(x, y, '#d9a832', 18, 1.3); // 탄피
+  },
+};
+
 export const EFFECTS = {
-  bomb, bomb5, row, column, sameType, diagonal, xblast, dove,
+  bomb, bomb5, row, column, sameType, diagonal, xblast, dove, dove3,
   // 그룹 기본값
   politician: bomb,
   business: row,

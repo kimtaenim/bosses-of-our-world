@@ -624,8 +624,8 @@ export class Game {
       const f = fresh.splice(Math.floor(Math.random() * fresh.length), 1)[0];
       const idx = this.chars.findIndex((ch) => ch.item === kind);
       if (idx < 0) continue;
-      // 드론은 드론끼리 맞출 수 있고(셋 맞추면 5×5), 나머지 아이템은 매치되지 않음
-      Object.assign(f.tile, { type: idx, special: true, item: kind, noMatch: kind !== 'drone' });
+      // 드론·비둘기 민병대는 같은 것끼리 맞출 수 있고(셋 맞추면 대폭발), 시한폭탄은 매치되지 않음
+      Object.assign(f.tile, { type: idx, special: true, item: kind, noMatch: kind === 'timebomb' });
       // 시한폭탄: 떨어지는 시간(0.6초) 뒤부터 카운트다운
       if (kind === 'timebomb') { f.tile.fuse = this.tw.time + FUSE_MS + 600; f.tile.shownDigit = -1; }
     }
@@ -715,18 +715,21 @@ export class Game {
     const fired = new Set();
     const chained = []; // 다른 특수 효과에 맞아 연쇄 발동하는 특수 타일
     const plays = [];
-    // 드론 셋 이상을 한 줄로 맞추면: 가운데 드론 하나가 5×5로 크게 터지고 나머지 드론은 그냥 사라짐
-    const bigDrone = new Set();
+    // 아이템 셋 이상을 한 줄로 맞추면: 가운데 하나가 크게 터지고 나머지는 그냥 사라짐
+    //   드론 → 5×5, 비둘기 민병대 → 세로 세 줄
+    const BIG = { drone: EFFECTS.bomb5, dove: EFFECTS.dove3 };
+    const bigAt = new Map();
     for (const g of m.groups) {
-      if (!this.chars[g.type] || this.chars[g.type].item !== 'drone') continue;
+      const big = this.chars[g.type] && BIG[this.chars[g.type].item];
+      if (!big) continue;
       const sorted = [...g.cells].sort((a, b) => a - b);
       const mid = sorted[Math.floor(sorted.length / 2)];
-      bigDrone.add(mid);
+      bigAt.set(mid, big);
       for (const i of sorted) if (i !== mid) { fired.add(i); popAt.set(i, HIT); }
     }
     for (const i of m.matched) {
       if (fired.has(i)) continue;
-      if (bigDrone.has(i)) triggers.push({ i, t: HIT, effect: EFFECTS.bomb5 });
+      if (bigAt.has(i)) triggers.push({ i, t: HIT, effect: bigAt.get(i) });
       else if (board.cells[i].special) triggers.push({ i, t: HIT });
       else popAt.set(i, HIT);
     }
@@ -812,7 +815,7 @@ export class Game {
         this.fx.shake(pl.big ? 10 : 8);
         this.vibrate(pl.big ? [40, 30, 60] : 30);
         this.sound.special(this.chars[pl.type]); // 국기 방귀, 테슬라 부르릉, 로켓 콰광 ...
-        if (pl.big) this.sound.play('special_rocket'); // 드론 셋: 더 큰 쾅
+        if (pl.big) this.sound.play('special_rocket'); // 아이템 셋: 더 큰 쾅
       });
     }
     for (const sp of spawns) {
