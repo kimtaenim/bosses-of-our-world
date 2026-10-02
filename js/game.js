@@ -58,6 +58,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
+    this.deferredKaiju = []; // 폭발에 휘말려, 판이 다시 채워진 뒤 나타날 카이주 [{ r, c }]
     this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile' | 'drone' | 'tariff' | 'ufo' | 'kaiju' | 'secrets')
     this.lastMatch = 0;
     this.lastTs = 0;
@@ -154,6 +155,7 @@ export class Game {
   async startLevel(level, score = 0, elapsed = 0) {
     this.level = level;
     this.pendingItems = [];
+    this.deferredKaiju = [];
     this.fullShuffle = false;
     this.levelT0 = this.tw.time - elapsed;
     this.spot = null;
@@ -450,6 +452,16 @@ export class Game {
     this.lastMatch = this.tw.time;
     let cascade = 0;
     for (;;) {
+      // 폭발에 휘말렸던 카이주가 다시 쌓인 판 위에 나타나 걸어감
+      if (this.deferredKaiju.length) {
+        const k = this.deferredKaiju.shift();
+        const ki = this.chars.findIndex((ch) => ch.item === 'kaiju');
+        await this.resolveStep({ groups: [], matched: new Set() }, Math.max(cascade, 1), null,
+          [{ i: this.board.idx(k.r, k.c), effect: EFFECTS.kaiju, soundType: ki }]);
+        if (this.score >= this.target()) { await this.levelClear(); return; }
+        await this.animateFalls(this.collapse());
+        continue;
+      }
       const m = this.board.findMatches();
       if (m.groups.length === 0) break;
       cascade++;
@@ -750,7 +762,8 @@ export class Game {
     return Math.max(0, Math.min(FUSE_FROM, Math.ceil((t.fuse - SHAKE_MS - this.tw.time) / 1000)));
   }
 
-  async resolveStep(m, cascade, swapCells) {
+  // extraTriggers: [{ i, effect, soundType }] — 매치와 별개로 그 칸에서 바로 발동시킬 효과 (나중에 나타나는 카이주)
+  async resolveStep(m, cascade, swapCells, extraTriggers = []) {
     const J = this.J;
     const board = this.board;
     const rows = this.cfg.ROWS, cols = this.cfg.COLS;
@@ -804,6 +817,7 @@ export class Game {
       if (this.chars[g.type].item === 'tariff') this.fullShuffle = true; // 관세 셋: 3×3 터지고 나서 전체 리셔플
       for (const i of sorted) if (i !== mid) { fired.add(i); popAt.set(i, HIT); }
     }
+    for (const e of extraTriggers) triggers.push({ i: e.i, t: HIT, effect: e.effect, soundType: e.soundType });
     for (const i of m.matched) {
       if (fired.has(i)) continue;
       if (bigAt.has(i)) triggers.push({ i, t: HIT, effect: bigAt.get(i) });
@@ -812,7 +826,7 @@ export class Game {
     }
     while (triggers.length) {
       triggers.sort((a, b) => a.t - b.t);
-      const { i, t, effect: override } = triggers.shift();
+      const { i, t, effect: override, chained: isChained, soundType } = triggers.shift();
       if (fired.has(i)) continue;
       fired.add(i);
       const tile = board.cells[i];
@@ -821,8 +835,10 @@ export class Game {
       popAt.set(i, t);
       if (!effect) continue;
       const [r, c] = board.rc(i);
+      // 폭발에 휘말린 카이주: 지금은 사라지고, 이 폭발이 끝나 빈칸이 다시 채워진 뒤 그 자리에 나타나 걸어감
+      if (isChained && tile.item === 'kaiju' && !override) { this.deferredKaiju.push({ r, c }); continue; }
       const area = effect.area(r, c, rows, cols, board, tile.type, popAt); // popAt: 이미 터지기로 한 칸
-      plays.push({ t, effect, r, c, area, type: tile.type, big: override === EFFECTS.screen });
+      plays.push({ t, effect, r, c, area, type: soundType ?? tile.type, big: override === EFFECTS.screen });
       for (const a of area) {
         const j = board.idx(a.r, a.c);
         const tt = t + a.delay;
@@ -831,7 +847,7 @@ export class Game {
         const other = board.cells[j];
         if (!other) continue;
         if (other.item === 'timebomb') continue; // 시한폭탄은 휘말려도 안 터짐 (시간이 돼야만)
-        if (other.special) { if (!fired.has(j)) { triggers.push({ i: j, t: tt + CHAIN_DELAY }); chained.push({ tile: other, t: tt }); } }
+        if (other.special) { if (!fired.has(j)) { triggers.push({ i: j, t: tt + CHAIN_DELAY, chained: true }); chained.push({ tile: other, t: tt }); } }
         else setMin(j, tt);
       }
     }
