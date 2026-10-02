@@ -360,6 +360,7 @@ const kaiju = {
         game.fx.burst(x, y, '#8a7a66', 10, 1.2); // 부서진 잔해
         game.fx.shake(5);
         game.sound.play('kaiju_stomp');
+        game.kaijuScare(p.r, p.c); // 주변 얼굴들 비명·덜덜
       });
     });
     game.tw.after(path.length * KAIJU_STEP, () => game.sound.play('special_fart')); // 사라지며 방귀
@@ -396,6 +397,7 @@ const kaiju5 = {
           game.fx.burst(x, y, '#8a7a66', 8, 1.2);
           game.fx.shake(6);
           game.sound.play('kaiju_stomp');
+          game.kaijuScare(p.r, p.c); // 주변 얼굴들 비명·덜덜
         });
       });
     }

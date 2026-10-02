@@ -980,6 +980,25 @@ export class Game {
 
   // 터진 칸 주변 8칸: 폭발 쪽을 쳐다보며 움찔
   // 그 바깥 2칸은 폭발 쪽을 쳐다봄
+  // 카이주가 밟은 칸 주변: 바로 옆은 비명 지르며 덜덜, 두 칸 거리는 깜짝 놀라 살짝 떪
+  kaijuScare(r, c) {
+    const near = [];
+    for (let dr = -2; dr <= 2; dr++) {
+      for (let dc = -2; dc <= 2; dc++) {
+        const t = this.board && this.board.get(r + dr, c + dc);
+        if (!t || t.special) continue;
+        const d = Math.max(Math.abs(dr), Math.abs(dc));
+        this.faces.cancelMotion(t);
+        this.faces.set(t, d <= 1 ? 'scream' : 'shock', d <= 1 ? 750 : 500, d <= 1 ? PRIO.DOOM : PRIO.MOVE);
+        near.push({ t, amp: d <= 1 ? 3.2 : 1.6 });
+      }
+    }
+    if (!near.length || this.J <= 0) return;
+    this.tw.tween(450, (p) => {
+      for (const n of near) n.t.jx = (Math.random() * 2 - 1) * n.amp * (1 - p) * Math.min(this.J, 1.5);
+    }).then(() => { for (const n of near) n.t.jx = 0; });
+  }
+
   reactAround(r, c) {
     for (let dr = -2; dr <= 2; dr++) {
       for (let dc = -2; dc <= 2; dc++) {
