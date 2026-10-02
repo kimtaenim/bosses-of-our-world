@@ -260,14 +260,28 @@ body {
 
 #mute {
   border: 0;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
-  font-size: 15px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
   line-height: 1;
-  padding: 4px 8px;
+  padding: 5px 7px 5px 9px;
   border-radius: 12px;
   cursor: pointer;
 }
+#mute b {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 3px;
+  padding: 2px 0;
+  border-radius: 6px;
+  text-align: center;
+  color: #fff;
+}
+#mute b.on { background: #2E9E4F; }
+#mute b.off { background: #C62828; }
 
 #stage {
   position: relative;
