@@ -194,8 +194,8 @@ const missile = {
   },
 };
 
-// ICBM 셋: 일곱 발이 동시에 솟아올라 제각각 높이가 다른 포물선을 그리며 날아가 판 사방팔방 2×2를 콰광
-const ICBM_SWARM = 7;
+// ICBM 셋: 열두 발이 동시에 솟아올라 제각각 높이가 다른 포물선을 그리며 날아가 판 사방팔방 2×2를 콰광
+const ICBM_SWARM = 12;
 const icbmSwarm = {
   area(r, c, rows, cols) {
     // 2×2 자리를 고르게 흩어지도록 고름 (겹치지 않는 곳 먼저)
@@ -209,7 +209,7 @@ const icbmSwarm = {
     const out = [{ r, c, delay: 0 }];
     const seen = new Set([r * cols + c]);
     out.targets = picked.map((sp, k) => {
-      const delay = 900 + k * 110 + Math.round(Math.random() * 250); // 하나씩 차례로 쾅쾅쾅
+      const delay = 900 + k * 75 + Math.round(Math.random() * 250); // 하나씩 차례로 쾅쾅쾅
       for (let dr = 0; dr < 2; dr++) for (let dc = 0; dc < 2; dc++) {
         const rr = sp.r + dr, cc = sp.c + dc;
         if (seen.has(rr * cols + cc)) continue;
