@@ -7,6 +7,9 @@ import { loadProgress, saveProgress } from './storage.js';
 import { EFFECTS } from './effects.js';
 import { FUSE_MS, SHAKE_MS, FUSE_FROM, KAIJU_FRAMES, KAIJU_STILL } from './items.js';
 import { Sound } from './audio.js';
+
+// 다른 폭발에 휘말리면 판이 다시 채워진 뒤에 발동하는 아이템 (무작위 칸을 노리므로, 이미 빈칸을 치지 않게)
+const DEFER_ITEMS = new Set(['kaiju', 'drone', 'ufo', 'missile']);
 import { Faces, PRIO } from './faces.js';
 
 const CHAIN_DELAY = 110; // 연쇄 발동 전 부르르 떠는 시간(ms)
@@ -58,7 +61,7 @@ export class Game {
     this.lastInput = 0;
     this.hint = null;      // { a, b, t0 }
     this.spot = null;      // 오래 못 맞출 때 표시: { a, b, cells, from, to, t0 }
-    this.deferredKaiju = []; // 폭발에 휘말려, 판이 다시 채워진 뒤 나타날 카이주 [{ r, c }]
+    this.deferredItems = []; // 폭발에 휘말려, 판이 다시 채워진 뒤 발동할 카이주·드론·UFO·ICBM [{ r, c, item }]
     this.pendingItems = []; // 다음에 위에서 떨어질 아이템 ('nuke' | 'timebomb' | 'missile' | 'drone' | 'tariff' | 'ufo' | 'kaiju' | 'secrets')
     this.lastMatch = 0;
     this.lastTs = 0;
@@ -153,7 +156,7 @@ export class Game {
   async startLevel(level, score = 0, elapsed = 0) {
     this.level = level;
     this.pendingItems = [];
-    this.deferredKaiju = [];
+    this.deferredItems = [];
     if (this.fx.kaijuFrames?.some((f) => !f)) this.loadKaijuFrames(); // 못 받은 카이주 그림 다시
     this.fullShuffle = false;
     this.levelT0 = this.tw.time - elapsed;
@@ -464,12 +467,12 @@ export class Game {
     this.lastMatch = this.tw.time;
     let cascade = 0;
     for (;;) {
-      // 폭발에 휘말렸던 카이주가 다시 쌓인 판 위에 나타나 걸어감
-      if (this.deferredKaiju.length) {
-        const k = this.deferredKaiju.shift();
-        const ki = this.chars.findIndex((ch) => ch.item === 'kaiju');
+      // 폭발에 휘말렸던 카이주·드론·UFO·ICBM이 다시 쌓인 판 위에서 발동 (빈칸 대신 새 타일을 부숨)
+      if (this.deferredItems.length) {
+        const k = this.deferredItems.shift();
+        const ki = this.chars.findIndex((ch) => ch.item === k.item);
         await this.resolveStep({ groups: [], matched: new Set() }, Math.max(cascade, 1), null,
-          [{ i: this.board.idx(k.r, k.c), effect: EFFECTS.kaiju, soundType: ki }]);
+          [{ i: this.board.idx(k.r, k.c), effect: EFFECTS[this.chars[ki].effect], soundType: ki }]);
         if (this.score >= this.target()) { await this.levelClear(); return; }
         await this.animateFalls(this.collapse());
         continue;
@@ -854,7 +857,7 @@ export class Game {
       if (!effect) continue;
       const [r, c] = board.rc(i);
       // 폭발에 휘말린 카이주: 지금은 사라지고, 이 폭발이 끝나 빈칸이 다시 채워진 뒤 그 자리에 나타나 걸어감
-      if (isChained && tile.item === 'kaiju' && !override) { this.deferredKaiju.push({ r, c }); continue; }
+      if (isChained && DEFER_ITEMS.has(tile.item) && !override) { this.deferredItems.push({ r, c, item: tile.item }); continue; }
       const area = effect.area(r, c, rows, cols, board, tile.type, popAt); // popAt: 이미 터지기로 한 칸
       plays.push({ t, effect, r, c, area, type: soundType ?? tile.type, big: override === EFFECTS.screen });
       for (const a of area) {
