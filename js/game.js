@@ -410,6 +410,7 @@ export class Game {
   }
 
   // 매 프레임: 둘 곳이 없는데 멈춰 있으면 섞고, 너무 오래 busy면 복구
+  //   (busySince는 연쇄 단계마다 갱신되므로, 한 단계가 12초 넘게 안 끝날 때만 복구)
   watchdog() {
     const now = this.tw.time;
     if (this.busy) {
@@ -468,11 +469,19 @@ export class Game {
     let cascade = 0;
     for (;;) {
       // 폭발에 휘말렸던 카이주·드론·UFO·ICBM이 다시 쌓인 판 위에서 발동 (빈칸 대신 새 타일을 부숨)
+      //   여럿이면 한꺼번에 발동 (하나씩 차례로 하면 너무 길어짐). 같은 칸은 한 번만.
       if (this.deferredItems.length) {
-        const k = this.deferredItems.shift();
-        const ki = this.chars.findIndex((ch) => ch.item === k.item);
-        await this.resolveStep({ groups: [], matched: new Set() }, Math.max(cascade, 1), null,
-          [{ i: this.board.idx(k.r, k.c), effect: EFFECTS[this.chars[ki].effect], soundType: ki }]);
+        const list = this.deferredItems.splice(0);
+        const seen = new Set();
+        const extra = [];
+        for (const k of list) {
+          const i = this.board.idx(k.r, k.c);
+          const ki = this.chars.findIndex((ch) => ch.item === k.item);
+          if (seen.has(i) || ki < 0 || !this.board.cells[i]) continue;
+          seen.add(i);
+          extra.push({ i, effect: EFFECTS[this.chars[ki].effect], soundType: ki });
+        }
+        await this.resolveStep({ groups: [], matched: new Set() }, Math.max(cascade, 1), null, extra);
         if (this.score >= this.target()) { await this.levelClear(); return; }
         await this.animateFalls(this.collapse());
         continue;
@@ -779,6 +788,7 @@ export class Game {
 
   // extraTriggers: [{ i, effect, soundType }] — 매치와 별개로 그 칸에서 바로 발동시킬 효과 (나중에 나타나는 카이주)
   async resolveStep(m, cascade, swapCells, extraTriggers = []) {
+    this.busySince = this.tw.time; // 진행 중이라는 신호 (워치독이 연쇄가 길다고 멈춘 걸로 오해하지 않게)
     const J = this.J;
     const board = this.board;
     const rows = this.cfg.ROWS, cols = this.cfg.COLS;
@@ -851,6 +861,7 @@ export class Game {
       if (fired.has(i)) continue;
       fired.add(i);
       const tile = board.cells[i];
+      if (!tile) continue;
       const ch = this.chars[tile.type];
       const effect = override || EFFECTS[ch.effect || ch.group];
       popAt.set(i, t);
