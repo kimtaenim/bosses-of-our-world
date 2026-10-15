@@ -158,6 +158,7 @@ export class Game {
     this.pendingItems = [];
     this.deferredItems = [];
     if (this.fx.kaijuFrames?.some((f) => !f)) this.loadKaijuFrames(); // 못 받은 카이주 그림 다시
+    this.sprites.reloadMissing(); // 망이 끊겨 못 받은 얼굴 그림 다시
     this.fullShuffle = false;
     this.levelT0 = this.tw.time - elapsed;
     this.spot = null;

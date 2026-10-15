@@ -18,12 +18,23 @@ export const DEFAULT_FALLBACK = {
   shock: 'smirk', scream: 'shock', fall: 'shock', sulk: 'smirk', glance: 'smirk', glance_left: 'smirk', eyeroll: 'glance', blink: 'smirk', nervous: 'shock', squish: 'scream', cheer: 'smirk',
 };
 
-function loadImage(src) {
+// 서버에 아예 없는 그림 (404) — 다시 받지 않는다
+const NOT_FOUND = new Set();
+
+// 망이 끊겨서 못 받았으면 잠깐 쉬었다가 몇 번 더 받아 본다 (얼굴이 글자 얼굴로 바뀌지 않게).
+// 서버에 없는 그림(404)은 바로 포기.
+function loadImage(src, tries = 3) {
   return new Promise((resolve) => {
-    if (!src) { resolve(null); return; }
+    if (!src || NOT_FOUND.has(src)) { resolve(null); return; }
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    img.onerror = async () => {
+      let gone = false;
+      try { const r = await fetch(src, { method: 'HEAD' }); gone = r.status === 404; } catch (_) { /* 망 끊김 */ }
+      if (gone) NOT_FOUND.add(src);
+      if (gone || tries <= 1) { resolve(null); return; }
+      setTimeout(() => loadImage(src, tries - 1).then(resolve), 800);
+    };
     img.src = src;
   });
 }
@@ -223,12 +234,34 @@ export class Sprites {
     this.specialImgs = await Promise.all(this.characters.map((ch) => loadImage(ch.special)));
   }
 
+  // 못 받은 얼굴·특수 그림을 다시 받아 본다 (판이 시작될 때). 새로 받은 게 있으면 타일 그림을 다시 그림
+  async reloadMissing() {
+    let changed = false;
+    await Promise.all(this.characters.map(async (ch, i) => {
+      if (ch.faceDir) {
+        const imgs = this.faceImgs[i];
+        const want = this.expressions.filter((e) => !(imgs && imgs.loaded && imgs.loaded.has(e)) && !NOT_FOUND.has(`${ch.faceDir}${e}.${this.format}`));
+        if (want.length) {
+          const next = await this.loadFaces(ch);
+          if (next && (!imgs || next.loaded.size > imgs.loaded.size)) { this.faceImgs[i] = next; changed = true; }
+        }
+      }
+      if (ch.special && !this.specialImgs[i] && !NOT_FOUND.has(ch.special)) {
+        const sp = await loadImage(ch.special);
+        if (sp) { this.specialImgs[i] = sp; changed = true; }
+      }
+    }));
+    if (changed && this.pxScale) { const px = this.pxScale; this.pxScale = 0; this.build(px); }
+    return changed;
+  }
+
   // smirk가 없어도 다른 표정이 하나라도 있으면 원화를 쓴다 (임시 기본 얼굴: glance → 처음 찾은 표정)
   async loadFaces(ch) {
     if (!ch.faceDir) return null;
     const loaded = await Promise.all(this.expressions.map((e) => loadImage(`${ch.faceDir}${e}.${this.format}`)));
     const imgs = {};
     this.expressions.forEach((e, i) => { if (loaded[i]) imgs[e] = loaded[i]; });
+    Object.defineProperty(imgs, 'loaded', { value: new Set(this.expressions.filter((e, i) => loaded[i])) });
     if (!imgs.smirk) imgs.smirk = imgs.glance || imgs.glance_left || Object.values(imgs)[0];
     if (!imgs.smirk) return null;
     imgs.bg = cornerColor(imgs.smirk) || ch.color;
